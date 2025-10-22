@@ -30,7 +30,7 @@ Create a `.env` file in the root directory:
 HOST=0.0.0.0
 PORT=3000
 LOG_LEVEL=info
-DEFAULT_EXCHANGE=binance
+DEFAULT_EXCHANGE=coinbase
 
 # Exchange API Credentials (optional, only needed for private tools)
 BINANCE_API_KEY=your_binance_api_key
@@ -226,8 +226,8 @@ console.log(result.content[0].text);
 
 ## Supported Exchanges
 
-- Binance (default)
-- Coinbase
+- Coinbase (default)
+- Binance
 - Kraken
 - Bitfinex
 - Bybit

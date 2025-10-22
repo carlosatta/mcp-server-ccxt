@@ -24,7 +24,7 @@ export const SUPPORTED_EXCHANGES = [
   "bybit",
 ];
 
-export const DEFAULT_EXCHANGE = process.env.DEFAULT_EXCHANGE || "binance";
+export const DEFAULT_EXCHANGE = process.env.DEFAULT_EXCHANGE || "coinbase";
 
 export const TIMEFRAMES = ["1m", "5m", "15m", "1h", "4h", "1d"];
 
