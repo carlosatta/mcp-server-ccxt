@@ -1,2 +1,18 @@
+# Environment variables
 .env
+
+# Dependencies
 node_modules/
+
+# Backup files
+*.bak
+*.old
+*~
+
+# Log files
+*.log
+*.tmp
+
+# OS files
+.DS_Store
+Thumbs.db

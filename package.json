@@ -1,15 +1,27 @@
 {
   "name": "mcp-webserver-ccxt",
   "version": "1.0.0",
-  "description": "",
+  "description": "CCXT MCP Server",
   "main": "index.js",
+  "type": "module",
   "scripts": {
+    "start": "node index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
+  "keywords": [
+    "ccxt",
+    "crypto",
+    "exchange",
+    "api",
+    "webserver"
+  ],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@mcpfun/mcp-server-ccxt": "github:doggybee/mcp-server-ccxt"
+    "@modelcontextprotocol/sdk": "^1.0.4",
+    "ccxt": "^4.4.37",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0"
   }
 }
