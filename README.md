@@ -1,5 +1,7 @@
 # MCP Server CCXT
 
+> ⚠️ **Work in Progress**: This project is currently under active development. Features and APIs may change without notice. Use in production environments at your own risk.
+
 MCP (Model Context Protocol) server that exposes CCXT cryptocurrency exchange APIs via Server-Sent Events (SSE). This server provides 23 comprehensive tools for interacting with multiple cryptocurrency exchanges.
 
 ## Features
