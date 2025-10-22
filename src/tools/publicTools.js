@@ -37,7 +37,7 @@ export const publicToolsDefinitions = [
         },
         exchange: {
           type: "string",
-          description: "Exchange to use (optional, default from env)",
+          description: `Exchange to use (optional, defaults to ${DEFAULT_EXCHANGE})`,
           enum: SUPPORTED_EXCHANGES,
         },
       },
@@ -57,7 +57,7 @@ export const publicToolsDefinitions = [
         },
         exchange: {
           type: "string",
-          description: "Exchange to use (optional, default from env)",
+          description: `Exchange to use (optional, defaults to ${DEFAULT_EXCHANGE})`,
           enum: SUPPORTED_EXCHANGES,
         },
       },
@@ -80,7 +80,7 @@ export const publicToolsDefinitions = [
         },
         exchange: {
           type: "string",
-          description: "Exchange to use (optional, default from env)",
+          description: `Exchange to use (optional, defaults to ${DEFAULT_EXCHANGE})`,
           enum: SUPPORTED_EXCHANGES,
         },
       },
@@ -112,7 +112,7 @@ export const publicToolsDefinitions = [
         },
         exchange: {
           type: "string",
-          description: "Exchange to use (optional, default from env)",
+          description: `Exchange to use (optional, defaults to ${DEFAULT_EXCHANGE})`,
           enum: SUPPORTED_EXCHANGES,
         },
       },
@@ -139,7 +139,7 @@ export const publicToolsDefinitions = [
         },
         exchange: {
           type: "string",
-          description: "Exchange to use (optional, default from env)",
+          description: `Exchange to use (optional, defaults to ${DEFAULT_EXCHANGE})`,
           enum: SUPPORTED_EXCHANGES,
         },
       },
@@ -154,7 +154,7 @@ export const publicToolsDefinitions = [
       properties: {
         exchange: {
           type: "string",
-          description: "Exchange to use (optional, default from env)",
+          description: `Exchange to use (optional, defaults to ${DEFAULT_EXCHANGE})`,
           enum: SUPPORTED_EXCHANGES,
         },
         search: {
@@ -197,7 +197,7 @@ export const publicToolsDefinitions = [
         },
         exchange: {
           type: "string",
-          description: "Exchange to use (optional, default from env)",
+          description: `Exchange to use (optional, defaults to ${DEFAULT_EXCHANGE})`,
           enum: SUPPORTED_EXCHANGES,
         },
       },
@@ -216,7 +216,7 @@ export const publicToolsDefinitions = [
         },
         exchange: {
           type: "string",
-          description: "Exchange to use (optional, default from env)",
+          description: `Exchange to use (optional, defaults to ${DEFAULT_EXCHANGE})`,
           enum: SUPPORTED_EXCHANGES,
         },
       },
@@ -235,7 +235,7 @@ export const publicToolsDefinitions = [
         },
         exchange: {
           type: "string",
-          description: "Exchange to use (optional, default from env)",
+          description: `Exchange to use (optional, defaults to ${DEFAULT_EXCHANGE})`,
           enum: SUPPORTED_EXCHANGES,
         },
       },
@@ -254,7 +254,7 @@ export const publicToolsDefinitions = [
         },
         exchange: {
           type: "string",
-          description: "Exchange to use (optional, default from env)",
+          description: `Exchange to use (optional, defaults to ${DEFAULT_EXCHANGE})`,
           enum: SUPPORTED_EXCHANGES,
         },
       },
@@ -281,7 +281,7 @@ export const publicToolsDefinitions = [
         },
         exchange: {
           type: "string",
-          description: "Exchange to use (optional, default from env)",
+          description: `Exchange to use (optional, defaults to ${DEFAULT_EXCHANGE})`,
           enum: SUPPORTED_EXCHANGES,
         },
       },
@@ -379,7 +379,7 @@ export const publicToolsHandlers = {
     await exchange.loadMarkets();
 
     const tickers = await exchange.fetchTickers(args.symbols);
-    
+
     const result = {};
     for (const symbol of args.symbols) {
       if (tickers[symbol]) {
@@ -795,7 +795,7 @@ export const publicToolsHandlers = {
     try {
       const limit = args.limit || 50;
       let orders;
-      
+
       if (exchange.has.fetchClosedOrders) {
         orders = await exchange.fetchClosedOrders(args.symbol, args.since, limit);
       } else {

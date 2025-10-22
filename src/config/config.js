@@ -17,8 +17,8 @@ export const SERVER_CONFIG = {
 };
 
 export const SUPPORTED_EXCHANGES = [
-  "binance",
   "coinbase",
+  "binance",
   "kraken",
   "bitfinex",
   "bybit",
