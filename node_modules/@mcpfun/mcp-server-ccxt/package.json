@@ -1,0 +1,58 @@
+{
+  "name": "@mcpfun/mcp-server-ccxt",
+  "version": "1.2.2",
+  "description": "High-performance CCXT MCP server for cryptocurrency exchange integration",
+  "main": "build/index.js",
+  "type": "module",
+  "bin": {
+    "mcp-server-ccxt": "./bin/cli.js"
+  },
+  "files": [
+    "bin/",
+    "build/",
+    "assets/",
+    "LICENSE.txt",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "start": "node build/index.js",
+    "dev": "tsc -w",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.8.0",
+    "ccxt": "^4.4.71",
+    "dotenv": "^16.3.1",
+    "lru-cache": "^10.0.1",
+    "p-queue": "^7.3.4",
+    "rxjs": "^7.8.2",
+    "zod": "^3.22.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.6.0",
+    "typescript": "^5.2.2"
+  },
+  "keywords": [
+    "cryptocurrency",
+    "exchange",
+    "ccxt",
+    "trading",
+    "llm",
+    "mcp",
+    "language-model"
+  ],
+  "author": "Doggybee",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/doggybee/mcp-server-ccxt.git"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
