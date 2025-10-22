@@ -1,4 +1,4 @@
-# MCP CCXT Web Server
+# MCP Server CCXT
 
 MCP (Model Context Protocol) server that exposes CCXT cryptocurrency exchange APIs via Server-Sent Events (SSE). This server provides 23 comprehensive tools for interacting with multiple cryptocurrency exchanges.
 
@@ -163,7 +163,7 @@ node test-extended.js
 ## Architecture
 
 ```
-mcp-webserver-ccxt/
+mcp-server-ccxt/
 ├── index.js                    # Main server
 ├── src/
 │   ├── mcpServer.js           # MCP server

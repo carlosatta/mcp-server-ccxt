@@ -1,7 +1,7 @@
 {
-  "name": "mcp-webserver-ccxt",
+  "name": "mcp-server-ccxt",
   "version": "1.0.0",
-  "description": "CCXT MCP Server",
+  "description": "MCP Server CCXT - Cryptocurrency Exchange API Tools",
   "main": "index.js",
   "type": "module",
   "scripts": {

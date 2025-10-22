@@ -1,5 +1,9 @@
 /**
- * Central MCP CCXT server configuration
+ export const SERVER_CONFIG = {
+  name: "mcp-server-ccxt",
+  version: "1.0.0",
+  description: "MCP Server CCXT - Cryptocurrency Exchange API Tools",
+  host: process.env.HOST || "0.0.0.0",tral MCP CCXT server configuration
  * Uses environment variables when available, otherwise uses default values
  */
 
