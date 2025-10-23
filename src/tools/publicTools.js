@@ -4,7 +4,7 @@
  */
 
 import { getExchange } from "../utils/exchangeManager.js";
-import { SUPPORTED_EXCHANGES, TIMEFRAMES, LIMITS, DEFAULT_EXCHANGE } from "../config/config.js";
+import { SUPPORTED_EXCHANGES, TIMEFRAMES, LIMITS, DEFAULT_EXCHANGE, getExchangeCredentials } from "../config/config.js";
 import ccxt from "ccxt";
 
 /**
@@ -534,7 +534,8 @@ export const publicToolsHandlers = {
    */
   get_markets: async (args) => {
     const exchangeName = args.exchange || DEFAULT_EXCHANGE;
-    const exchange = getExchange(exchangeName);
+    const credentials = getExchangeCredentials(exchangeName);
+    const exchange = getExchange(exchangeName, credentials);
     await exchange.loadMarkets();
 
     let markets = Object.values(exchange.markets);
@@ -748,7 +749,15 @@ export const publicToolsHandlers = {
    */
   get_open_orders: async (args) => {
     const exchangeName = args.exchange || DEFAULT_EXCHANGE;
-    const exchange = getExchange(exchangeName);
+    const credentials = getExchangeCredentials(exchangeName);
+
+    if (!credentials) {
+      throw new Error(
+        `No credentials configured for ${exchangeName}. Please set ${exchangeName.toUpperCase()}_API_KEY and ${exchangeName.toUpperCase()}_SECRET in .env file.`
+      );
+    }
+
+    const exchange = getExchange(exchangeName, credentials);
     await exchange.loadMarkets();
 
     if (!exchange.has.fetchOpenOrders) {
@@ -776,7 +785,7 @@ export const publicToolsHandlers = {
         ],
       };
     } catch (error) {
-      throw new Error(`This operation requires authentication. Please use private tools with configured API keys.`);
+      throw error;
     }
   },
 
@@ -785,7 +794,15 @@ export const publicToolsHandlers = {
    */
   get_order_history: async (args) => {
     const exchangeName = args.exchange || DEFAULT_EXCHANGE;
-    const exchange = getExchange(exchangeName);
+    const credentials = getExchangeCredentials(exchangeName);
+
+    if (!credentials) {
+      throw new Error(
+        `No credentials configured for ${exchangeName}. Please set ${exchangeName.toUpperCase()}_API_KEY and ${exchangeName.toUpperCase()}_SECRET in .env file.`
+      );
+    }
+
+    const exchange = getExchange(exchangeName, credentials);
     await exchange.loadMarkets();
 
     if (!exchange.has.fetchClosedOrders && !exchange.has.fetchOrders) {
@@ -820,7 +837,7 @@ export const publicToolsHandlers = {
         ],
       };
     } catch (error) {
-      throw new Error(`This operation requires authentication. Please use private tools with configured API keys.`);
+      throw error;
     }
   },
 };
