@@ -16,13 +16,13 @@ import {
 export const privateToolsDefinitions = [
   {
     name: "account_balance",
-    description: "Get account balance for all assets (aggregated)",
+    description: "Retrieve your complete account balance across all assets. Shows available, locked, and total balances for each currency you hold.",
     inputSchema: {
       type: "object",
       properties: {
         exchange: {
           type: "string",
-          description: `Exchange to use (optional, defaults to ${DEFAULT_EXCHANGE})`,
+          description: `Exchange name (defaults to '${DEFAULT_EXCHANGE}' if not specified)`,
           enum: SUPPORTED_EXCHANGES,
         },
       },
@@ -31,13 +31,13 @@ export const privateToolsDefinitions = [
   },
   {
     name: "list_accounts",
-    description: "List all accounts/wallets (Coinbase specific - shows individual wallets)",
+    description: "List all individual wallets/accounts in your exchange profile. Particularly useful for Coinbase which maintains separate wallets per currency.",
     inputSchema: {
       type: "object",
       properties: {
         exchange: {
           type: "string",
-          description: `Exchange to use (optional, defaults to ${DEFAULT_EXCHANGE})`,
+          description: `Exchange name (defaults to '${DEFAULT_EXCHANGE}' if not specified)`,
           enum: SUPPORTED_EXCHANGES,
         },
       },
@@ -46,26 +46,26 @@ export const privateToolsDefinitions = [
   },
   {
     name: "place_market_order",
-    description: "Place a market order (immediate execution at current market price). For Coinbase buy orders, amount represents the cost to spend in quote currency (e.g., amount=10 means spend 10 USDC to buy BTC).",
+    description: "Execute a market order immediately at the best available price. WARNING: Market orders have slippage risk. For Coinbase BUY orders, 'amount' specifies how much quote currency to spend (e.g., amount=10 means spend 10 USDC). For SELL orders, 'amount' is the quantity of base currency to sell. Minimum order size varies by exchange (typically ~$1-10 USD equivalent).",
     inputSchema: {
       type: "object",
       properties: {
         symbol: {
           type: "string",
-          description: "Trading symbol (e.g. BTC/USDT)",
+          description: "Trading pair in format BASE/QUOTE (e.g., 'BTC/USDT')",
         },
         side: {
           type: "string",
-          description: "Order side",
+          description: "'buy' to purchase the base currency, 'sell' to sell it",
           enum: ["buy", "sell"],
         },
         amount: {
           type: "number",
-          description: "For Coinbase buy orders: cost to spend in quote currency. For sell orders and other exchanges: quantity of base currency to trade.",
+          description: "For Coinbase BUY: amount of quote currency to spend (min ~$1). For SELL or other exchanges: quantity of base currency to trade.",
         },
         exchange: {
           type: "string",
-          description: `Exchange to use (optional, defaults to ${DEFAULT_EXCHANGE})`,
+          description: `Exchange name (defaults to '${DEFAULT_EXCHANGE}' if not specified)`,
           enum: SUPPORTED_EXCHANGES,
         },
       },
@@ -74,30 +74,30 @@ export const privateToolsDefinitions = [
   },
   {
     name: "place_limit_order",
-    description: "Place a limit order at a specific price",
+    description: "Place a limit order that will only execute at your specified price or better. Use this to avoid slippage and control exact entry/exit prices. Order remains open until filled, canceled, or expired.",
     inputSchema: {
       type: "object",
       properties: {
         symbol: {
           type: "string",
-          description: "Trading symbol (e.g. BTC/USDT)",
+          description: "Trading pair in format BASE/QUOTE (e.g., 'BTC/USDT')",
         },
         side: {
           type: "string",
-          description: "Order side",
+          description: "'buy' to purchase at or below limit price, 'sell' to sell at or above limit price",
           enum: ["buy", "sell"],
         },
         amount: {
           type: "number",
-          description: "Amount to trade",
+          description: "Quantity of base currency to buy or sell",
         },
         price: {
           type: "number",
-          description: "Limit price",
+          description: "Maximum price for buy orders, minimum price for sell orders",
         },
         exchange: {
           type: "string",
-          description: `Exchange to use (optional, defaults to ${DEFAULT_EXCHANGE})`,
+          description: `Exchange name (defaults to '${DEFAULT_EXCHANGE}' if not specified)`,
           enum: SUPPORTED_EXCHANGES,
         },
       },
@@ -106,21 +106,21 @@ export const privateToolsDefinitions = [
   },
   {
     name: "cancel_order",
-    description: "Cancel a specific order by ID",
+    description: "Cancel a specific pending order using its unique order ID. Note: Cannot cancel already filled or expired orders.",
     inputSchema: {
       type: "object",
       properties: {
         orderId: {
           type: "string",
-          description: "Order ID to cancel",
+          description: "Unique identifier of the order to cancel (obtained from order placement or order history)",
         },
         symbol: {
           type: "string",
-          description: "Trading symbol (required by some exchanges)",
+          description: "Trading pair (required by some exchanges, e.g., 'BTC/USDT')",
         },
         exchange: {
           type: "string",
-          description: `Exchange to use (optional, defaults to ${DEFAULT_EXCHANGE})`,
+          description: `Exchange name (defaults to '${DEFAULT_EXCHANGE}' if not specified)`,
           enum: SUPPORTED_EXCHANGES,
         },
       },
@@ -129,17 +129,17 @@ export const privateToolsDefinitions = [
   },
   {
     name: "cancel_all_orders",
-    description: "Cancel all open orders for a symbol or all symbols",
+    description: "Cancel all pending orders for a specific trading pair or across your entire account. Use with caution - this action cannot be undone.",
     inputSchema: {
       type: "object",
       properties: {
         symbol: {
           type: "string",
-          description: "Trading symbol (optional, cancel all if not specified)",
+          description: "Trading pair to cancel orders for (e.g., 'BTC/USDT'). Omit to cancel ALL orders across all pairs.",
         },
         exchange: {
           type: "string",
-          description: `Exchange to use (optional, defaults to ${DEFAULT_EXCHANGE})`,
+          description: `Exchange name (defaults to '${DEFAULT_EXCHANGE}' if not specified)`,
           enum: SUPPORTED_EXCHANGES,
         },
       },
@@ -148,21 +148,21 @@ export const privateToolsDefinitions = [
   },
   {
     name: "set_leverage",
-    description: "Set leverage for futures trading",
+    description: "Configure leverage multiplier for futures trading. Higher leverage increases both potential profits and losses. WARNING: Use leverage responsibly - liquidation risk increases with leverage.",
     inputSchema: {
       type: "object",
       properties: {
         symbol: {
           type: "string",
-          description: "Trading symbol (e.g. BTC/USDT)",
+          description: "Futures trading pair (e.g., 'BTC/USDT')",
         },
         leverage: {
           type: "number",
-          description: "Leverage multiplier (e.g. 1, 2, 5, 10, 20, 50, 100, 125)",
+          description: "Leverage multiplier (common values: 1, 2, 5, 10, 20, 50, 100). Maximum leverage varies by exchange and symbol.",
         },
         exchange: {
           type: "string",
-          description: `Exchange to use (optional, defaults to ${DEFAULT_EXCHANGE})`,
+          description: `Exchange name (defaults to '${DEFAULT_EXCHANGE}' if not specified)`,
           enum: SUPPORTED_EXCHANGES,
         },
       },
@@ -171,22 +171,22 @@ export const privateToolsDefinitions = [
   },
   {
     name: "set_margin_mode",
-    description: "Set margin mode for futures trading (isolated or cross)",
+    description: "Switch between isolated and cross margin modes for futures trading. ISOLATED: Each position has separate margin. CROSS: All positions share account margin. WARNING: Cross margin risks your entire account balance.",
     inputSchema: {
       type: "object",
       properties: {
         symbol: {
           type: "string",
-          description: "Trading symbol (e.g. BTC/USDT)",
+          description: "Futures trading pair (e.g., 'BTC/USDT')",
         },
         marginMode: {
           type: "string",
-          description: "Margin mode",
+          description: "'isolated' = separate margin per position (recommended for risk management), 'cross' = shared margin across all positions",
           enum: ["isolated", "cross"],
         },
         exchange: {
           type: "string",
-          description: `Exchange to use (optional, defaults to ${DEFAULT_EXCHANGE})`,
+          description: `Exchange name (defaults to '${DEFAULT_EXCHANGE}' if not specified)`,
           enum: SUPPORTED_EXCHANGES,
         },
       },
@@ -195,30 +195,30 @@ export const privateToolsDefinitions = [
   },
   {
     name: "place_futures_market_order",
-    description: "Place a futures market order",
+    description: "Execute a futures market order immediately at current market price. Use 'reduceOnly' to close existing positions without opening new ones.",
     inputSchema: {
       type: "object",
       properties: {
         symbol: {
           type: "string",
-          description: "Trading symbol (e.g. BTC/USDT)",
+          description: "Futures trading pair (e.g., 'BTC/USDT')",
         },
         side: {
           type: "string",
-          description: "Order side",
+          description: "'buy' to go long (profit from price increases), 'sell' to go short (profit from price decreases)",
           enum: ["buy", "sell"],
         },
         amount: {
           type: "number",
-          description: "Amount to trade",
+          description: "Contract quantity to trade (in base currency units)",
         },
         reduceOnly: {
           type: "boolean",
-          description: "Reduce only flag (closes position only)",
+          description: "If true, order will only reduce existing position size (cannot open new positions or increase size)",
         },
         exchange: {
           type: "string",
-          description: `Exchange to use (optional, defaults to ${DEFAULT_EXCHANGE})`,
+          description: `Exchange name (defaults to '${DEFAULT_EXCHANGE}' if not specified)`,
           enum: SUPPORTED_EXCHANGES,
         },
       },
@@ -227,38 +227,38 @@ export const privateToolsDefinitions = [
   },
   {
     name: "place_futures_limit_order",
-    description: "Place a futures limit order",
+    description: "Place a futures limit order at specified price. Use 'postOnly' for maker-only orders (guaranteed no taker fees). Use 'reduceOnly' to close positions only.",
     inputSchema: {
       type: "object",
       properties: {
         symbol: {
           type: "string",
-          description: "Trading symbol (e.g. BTC/USDT)",
+          description: "Futures trading pair (e.g., 'BTC/USDT')",
         },
         side: {
           type: "string",
-          description: "Order side",
+          description: "'buy' for long entry, 'sell' for short entry",
           enum: ["buy", "sell"],
         },
         amount: {
           type: "number",
-          description: "Amount to trade",
+          description: "Contract quantity to trade (in base currency units)",
         },
         price: {
           type: "number",
-          description: "Limit price",
+          description: "Limit price for order execution",
         },
         reduceOnly: {
           type: "boolean",
-          description: "Reduce only flag (closes position only)",
+          description: "If true, can only reduce position size (useful for take-profit/stop-loss)",
         },
         postOnly: {
           type: "boolean",
-          description: "Post only flag (maker only)",
+          description: "If true, order will only act as maker (cancelled if would take liquidity). Typically pays lower fees.",
         },
         exchange: {
           type: "string",
-          description: `Exchange to use (optional, defaults to ${DEFAULT_EXCHANGE})`,
+          description: `Exchange name (defaults to '${DEFAULT_EXCHANGE}' if not specified)`,
           enum: SUPPORTED_EXCHANGES,
         },
       },
@@ -267,17 +267,17 @@ export const privateToolsDefinitions = [
   },
   {
     name: "transfer_funds",
-    description: "Transfer funds between accounts (e.g. spot to futures)",
+    description: "Transfer funds between different account types (e.g., spot wallet to futures wallet, or vice versa). Required before trading in different markets.",
     inputSchema: {
       type: "object",
       properties: {
         currency: {
           type: "string",
-          description: "Currency to transfer (e.g. USDT, BTC)",
+          description: "Currency code to transfer (e.g., 'USDT', 'BTC', 'ETH')",
         },
         amount: {
           type: "number",
-          description: "Amount to transfer",
+          description: "Amount of currency to transfer",
         },
         fromAccount: {
           type: "string",
@@ -296,6 +296,76 @@ export const privateToolsDefinitions = [
         },
       },
       required: ["currency", "amount", "fromAccount", "toAccount"],
+    },
+  },
+  {
+    name: "get_portfolios",
+    description: "List all portfolios in your Coinbase account. Coinbase-specific feature for managing multiple portfolios. Each portfolio can contain different assets and trading strategies.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        exchange: {
+          type: "string",
+          description: `Exchange to use (optional, defaults to ${DEFAULT_EXCHANGE})`,
+          enum: SUPPORTED_EXCHANGES,
+        },
+      },
+      required: [],
+    },
+  },
+  {
+    name: "get_portfolio_details",
+    description: "Get detailed information about a specific portfolio including breakdown of holdings, allocations, and performance. Coinbase-specific feature.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        portfolioId: {
+          type: "string",
+          description: "Portfolio UUID to fetch details for",
+        },
+        exchange: {
+          type: "string",
+          description: `Exchange to use (optional, defaults to ${DEFAULT_EXCHANGE})`,
+          enum: SUPPORTED_EXCHANGES,
+        },
+      },
+      required: ["portfolioId"],
+    },
+  },
+  {
+    name: "edit_order",
+    description: "Modify an existing open order (typically changes price and/or quantity). Not all exchanges support this - some require cancel and recreate. Use this to adjust limit orders without losing queue position.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        orderId: {
+          type: "string",
+          description: "Order ID to modify",
+        },
+        symbol: {
+          type: "string",
+          description: "Trading pair (e.g., 'BTC/USDT')",
+        },
+        side: {
+          type: "string",
+          description: "'buy' or 'sell'",
+          enum: ["buy", "sell"],
+        },
+        amount: {
+          type: "number",
+          description: "New order quantity (optional - keep existing if not provided)",
+        },
+        price: {
+          type: "number",
+          description: "New limit price (optional - keep existing if not provided)",
+        },
+        exchange: {
+          type: "string",
+          description: `Exchange to use (optional, defaults to ${DEFAULT_EXCHANGE})`,
+          enum: SUPPORTED_EXCHANGES,
+        },
+      },
+      required: ["orderId", "symbol"],
     },
   },
 ];
@@ -838,6 +908,167 @@ export const privateToolsHandlers = {
                 to: args.toAccount,
               },
               result: result,
+            },
+            null,
+            2
+          ),
+        },
+      ],
+    };
+  },
+
+  /**
+   * Handler for get_portfolios
+   */
+  get_portfolios: async (args) => {
+    const exchangeName = args.exchange || DEFAULT_EXCHANGE;
+    const credentials = getExchangeCredentials(exchangeName);
+
+    if (!credentials) {
+      throw new Error(
+        `No credentials configured for ${exchangeName}. Please set ${exchangeName.toUpperCase()}_API_KEY and ${exchangeName.toUpperCase()}_SECRET in .env file.`
+      );
+    }
+
+    if (exchangeName !== 'coinbase') {
+      throw new Error('Portfolios are a Coinbase-specific feature. This tool only works with Coinbase exchange.');
+    }
+
+    const exchange = getExchange(exchangeName, credentials);
+
+    if (!exchange.has.fetchPortfolios) {
+      throw new Error(`${exchangeName} does not support fetchPortfolios`);
+    }
+
+    const portfolios = await exchange.fetchPortfolios();
+
+    return {
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify(
+            {
+              exchange: exchangeName,
+              count: portfolios ? portfolios.length : 0,
+              portfolios: portfolios,
+            },
+            null,
+            2
+          ),
+        },
+      ],
+    };
+  },
+
+  /**
+   * Handler for get_portfolio_details
+   */
+  get_portfolio_details: async (args) => {
+    const exchangeName = args.exchange || DEFAULT_EXCHANGE;
+    const credentials = getExchangeCredentials(exchangeName);
+
+    if (!credentials) {
+      throw new Error(
+        `No credentials configured for ${exchangeName}. Please set ${exchangeName.toUpperCase()}_API_KEY and ${exchangeName.toUpperCase()}_SECRET in .env file.`
+      );
+    }
+
+    if (exchangeName !== 'coinbase') {
+      throw new Error('Portfolio details are a Coinbase-specific feature. This tool only works with Coinbase exchange.');
+    }
+
+    const exchange = getExchange(exchangeName, credentials);
+
+    // Coinbase uses a custom method for portfolio breakdown
+    // This may require direct API calls or custom implementation
+    if (!exchange.has.fetchPortfolio && !exchange.has.fetchPortfolios) {
+      throw new Error(`${exchangeName} does not support portfolio details`);
+    }
+
+    // Try to fetch specific portfolio details
+    // Note: This might need adjustment based on actual Coinbase API structure
+    let portfolio;
+
+    if (exchange.has.fetchPortfolio) {
+      portfolio = await exchange.fetchPortfolio(args.portfolioId);
+    } else {
+      // Fallback: fetch all portfolios and filter
+      const portfolios = await exchange.fetchPortfolios();
+      portfolio = portfolios.find(p => p.id === args.portfolioId);
+
+      if (!portfolio) {
+        throw new Error(`Portfolio ${args.portfolioId} not found`);
+      }
+    }
+
+    return {
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify(
+            {
+              exchange: exchangeName,
+              portfolioId: args.portfolioId,
+              portfolio: portfolio,
+            },
+            null,
+            2
+          ),
+        },
+      ],
+    };
+  },
+
+  /**
+   * Handler for edit_order
+   */
+  edit_order: async (args) => {
+    const exchangeName = args.exchange || DEFAULT_EXCHANGE;
+    const credentials = getExchangeCredentials(exchangeName);
+
+    if (!credentials) {
+      throw new Error(
+        `No credentials configured for ${exchangeName}. Please set ${exchangeName.toUpperCase()}_API_KEY and ${exchangeName.toUpperCase()}_SECRET in .env file.`
+      );
+    }
+
+    const exchange = getExchange(exchangeName, credentials);
+    await exchange.loadMarkets();
+
+    if (!exchange.has.editOrder) {
+      throw new Error(
+        `${exchangeName} does not support editOrder. Consider using cancel_order + place_limit_order instead.`
+      );
+    }
+
+    // Build params object with only provided values
+    const params = {};
+    if (args.amount !== undefined) {
+      params.amount = args.amount;
+    }
+    if (args.price !== undefined) {
+      params.price = args.price;
+    }
+
+    const order = await exchange.editOrder(
+      args.orderId,
+      args.symbol,
+      undefined, // type (keep existing)
+      args.side,
+      args.amount,
+      args.price,
+      params
+    );
+
+    return {
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify(
+            {
+              exchange: exchangeName,
+              orderId: args.orderId,
+              editedOrder: order,
             },
             null,
             2

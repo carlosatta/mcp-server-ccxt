@@ -77,13 +77,18 @@ export function createMCPServer() {
       return result;
     } catch (error) {
       console.error(`❌ Error executing tool ${name}:`, error);
-      console.error(`   Error stack:`, error.stack);
+      console.error(`   Error type: ${error.constructor.name}`);
+      console.error(`   Error message: ${error.message}`);
+      if (error.stack) {
+        console.error(`   Stack trace: ${error.stack}`);
+      }
 
+      // Return error to client, don't crash server
       return {
         content: [
           {
             type: "text",
-            text: `Error: ${error.message}`,
+            text: `Error executing ${name}: ${error.message}\n\nType: ${error.constructor.name}`,
           },
         ],
         isError: true,

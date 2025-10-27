@@ -14,6 +14,19 @@ import {
   CORS_CONFIG
 } from "./src/config/config.js";
 
+// Global error handlers to prevent crashes
+process.on('uncaughtException', (error) => {
+  console.error('🚨 Uncaught Exception:', error);
+  console.error('   Stack:', error.stack);
+  // Don't exit, keep server running
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('🚨 Unhandled Promise Rejection:', reason);
+  console.error('   Promise:', promise);
+  // Don't exit, keep server running
+});
+
 const app = express();
 const HOST = SERVER_CONFIG.host;
 const PORT = SERVER_CONFIG.port;
@@ -36,6 +49,7 @@ const sessionMetadata = new Map();
 //=============================================================================
 app.all('/mcp', async (req, res) => {
   const sessionId = req.headers['mcp-session-id'];
+  const requestTimeout = 30000; // 30 seconds timeout per request
 
   try {
     let transport;
@@ -59,7 +73,9 @@ app.all('/mcp', async (req, res) => {
             connectedAt: new Date(),
             lastActivity: new Date(),
             clientIp: req.ip,
-            userAgent: req.get('user-agent')
+            userAgent: req.get('user-agent'),
+            requestCount: 0,
+            errorCount: 0
           });
         }
       });
@@ -88,18 +104,72 @@ app.all('/mcp', async (req, res) => {
       return;
     }
 
-    // Handle the request
-    await transport.handleRequest(req, res, req.body);
+    // Set response timeout
+    const timeoutId = setTimeout(() => {
+      if (!res.headersSent) {
+        console.error(`⏰ Request timeout for session ${sessionId}`);
+        // Don't close transport, just fail this request
+        res.status(504).json({
+          jsonrpc: '2.0',
+          error: {
+            code: -32001,
+            message: 'Gateway Timeout: Request exceeded 30 seconds'
+          },
+          id: req.body?.id || null
+        });
+      }
+    }, requestTimeout);
+
+    // Handle the request with timeout protection
+    try {
+      await Promise.race([
+        transport.handleRequest(req, res, req.body),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Request timeout')), requestTimeout)
+        )
+      ]);
+      clearTimeout(timeoutId);
+
+      // Update metadata on success
+      const metadata = sessionMetadata.get(sessionId);
+      if (metadata) {
+        metadata.requestCount = (metadata.requestCount || 0) + 1;
+      }
+    } catch (error) {
+      clearTimeout(timeoutId);
+
+      // Update error count but keep session alive
+      const metadata = sessionMetadata.get(sessionId);
+      if (metadata) {
+        metadata.errorCount = (metadata.errorCount || 0) + 1;
+      }
+
+      // If too many errors, recreate transport
+      if (metadata && metadata.errorCount > 5) {
+        console.error(`🔄 Too many errors for session ${sessionId}, recreating transport`);
+        try {
+          transport.close();
+        } catch (e) {
+          // Ignore close errors
+        }
+        transports.delete(sessionId);
+        sessionMetadata.delete(sessionId);
+      }
+
+      throw error;
+    }
   } catch (error) {
-    console.error('❌ MCP Error:', error);
+    console.error('❌ MCP Error:', error.message);
+
+    // Always respond, never leave request hanging
     if (!res.headersSent) {
       res.status(500).json({
         jsonrpc: '2.0',
         error: {
           code: -32603,
-          message: 'Internal server error'
+          message: error.message || 'Internal server error'
         },
-        id: null
+        id: req.body?.id || null
       });
     }
   }
