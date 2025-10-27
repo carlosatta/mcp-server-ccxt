@@ -14,6 +14,7 @@ export const SERVER_CONFIG = {
   host: process.env.HOST || "0.0.0.0",
   port: parseInt(process.env.PORT) || 3000,
   logLevel: process.env.LOG_LEVEL || "info",
+  requestTimeout: 60000, // 60 seconds timeout for requests
 };
 
 export const SUPPORTED_EXCHANGES = [

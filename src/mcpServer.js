@@ -14,7 +14,6 @@ import { privateToolsDefinitions, privateToolsHandlers } from "./tools/privateTo
 
 /**
  * Creates and configures the MCP server
- * All tools are always available
  * @returns {object} MCP server instance
  */
 export function createMCPServer() {
@@ -50,6 +49,7 @@ export function createMCPServer() {
 
     console.log(`🔧 Tool execution request: ${name}`);
     console.log(`   Arguments:`, JSON.stringify(args, null, 2));
+    console.log(`   Timestamp: ${new Date().toISOString()}`);
 
     try {
       // Find the correct handler
@@ -66,12 +66,18 @@ export function createMCPServer() {
         };
       }
 
+      console.log(`⏳ Executing handler for ${name}...`);
       // Execute the handler
+      const startTime = Date.now();
       const result = await allHandlers[name](args);
-      console.log(`✅ Tool ${name} executed successfully`);
+      const executionTime = Date.now() - startTime;
+
+      console.log(`✅ Tool ${name} executed successfully in ${executionTime}ms`);
+      console.log(`   Response size: ${JSON.stringify(result).length} bytes`);
       return result;
     } catch (error) {
       console.error(`❌ Error executing tool ${name}:`, error);
+      console.error(`   Error stack:`, error.stack);
 
       return {
         content: [

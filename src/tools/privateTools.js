@@ -46,7 +46,7 @@ export const privateToolsDefinitions = [
   },
   {
     name: "place_market_order",
-    description: "Place a market order (immediate execution at current market price)",
+    description: "Place a market order (immediate execution at current market price). For Coinbase buy orders, amount represents the cost to spend in quote currency (e.g., amount=10 means spend 10 USDC to buy BTC).",
     inputSchema: {
       type: "object",
       properties: {
@@ -61,7 +61,7 @@ export const privateToolsDefinitions = [
         },
         amount: {
           type: "number",
-          description: "Amount to trade",
+          description: "For Coinbase buy orders: cost to spend in quote currency. For sell orders and other exchanges: quantity of base currency to trade.",
         },
         exchange: {
           type: "string",
@@ -439,11 +439,24 @@ export const privateToolsHandlers = {
     const exchange = getExchange(exchangeName, credentials);
     await exchange.loadMarkets();
 
-    const order = await exchange.createMarketOrder(
-      args.symbol,
-      args.side,
-      args.amount
-    );
+    let order;
+
+    // Special handling for Coinbase market buy orders
+    if (exchangeName === 'coinbase' && args.side === 'buy') {
+      // Coinbase requires "quoteOrderQty" parameter for market buy orders (spend X USDC to buy BTC)
+      // The amount represents how much quote currency (e.g. USDC) to spend
+      order = await exchange.createMarketBuyOrderWithCost(
+        args.symbol,
+        args.amount
+      );
+    } else {
+      // Standard market order for other exchanges or sell orders
+      order = await exchange.createMarketOrder(
+        args.symbol,
+        args.side,
+        args.amount
+      );
+    }
 
     return {
       content: [

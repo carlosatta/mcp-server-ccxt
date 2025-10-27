@@ -534,8 +534,7 @@ export const publicToolsHandlers = {
    */
   get_markets: async (args) => {
     const exchangeName = args.exchange || DEFAULT_EXCHANGE;
-    const credentials = getExchangeCredentials(exchangeName);
-    const exchange = getExchange(exchangeName, credentials);
+    const exchange = getExchange(exchangeName);
     await exchange.loadMarkets();
 
     let markets = Object.values(exchange.markets);

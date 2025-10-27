@@ -2,14 +2,40 @@
 
 > ⚠️ **Work in Progress**: This project is currently under active development. Features and APIs may change without notice. Use in production environments at your own risk.
 
-MCP (Model Context Protocol) server that exposes CCXT cryptocurrency exchange APIs via Server-Sent Events (SSE). This server provides 23 comprehensive tools for interacting with multiple cryptocurrency exchanges.
+MCP (Model Context Protocol) server that exposes CCXT cryptocurrency exchange APIs via Server-Sent Events (SSE). This server provides 24 comprehensive tools for interacting with multiple cryptocurrency exchanges.
+
+## 🔒 Security First
+
+**IMPORTANT**: This server includes **multiple layers of security** to prevent accidental or malicious trading operations:
+
+- 🛡️ **SAFE_MODE**: Disable all trading operations, only read-only access
+- ⏱️ **Rate Limiting**: Prevent burst of orders (max 10 orders/minute per session)
+- 📝 **Enhanced Logging**: Full audit trail of all trading operations
+- 🔍 **Tool Classification**: Clear separation between safe vs dangerous tools
+- 🚨 **Security Checks**: Multiple validation layers before executing trades
+
+**See [SECURITY.md](SECURITY.md) for complete security documentation.**
+
+### Quick Start - Safe Mode
+
+For maximum security (recommended for production):
+
+```env
+# .env
+SAFE_MODE=true  # Disables ALL trading operations
+```
+
+With SAFE_MODE enabled:
+- ✅ Can read: balances, markets, prices, orders, history
+- ❌ Cannot: place orders, cancel orders, transfer funds
 
 ## Features
 
 - 🌐 **Web-based MCP server** using SSE transport
 - 💱 **Multiple exchange support**: Binance, Coinbase, Kraken, Bitfinex, Bybit
-- 🔧 **23 comprehensive tools** (13 public + 10 private)
+- 🔧 **24 comprehensive tools** (13 public + 11 private)
 - 🔐 **Environment-based credentials** management
+- 🛡️ **Advanced security features** (SAFE_MODE, rate limiting, audit logs)
 - 📊 **Public APIs**: Market data, tickers, orderbooks, OHLCV, trades, funding rates
 - 💰 **Private APIs**: Account balance, order management, futures trading, fund transfers
 - 🔄 **Session-based transport** with UUID tracking
@@ -26,13 +52,27 @@ npm install
 Create a `.env` file in the root directory:
 
 ```env
+# ==========================================
+# Security Configuration
+# ==========================================
+# SAFE_MODE: Disable ALL trading operations
+# Recommended: true for production
+SAFE_MODE=false
+
+# ==========================================
 # Server Configuration
+# ==========================================
 HOST=0.0.0.0
 PORT=3000
 LOG_LEVEL=info
 DEFAULT_EXCHANGE=coinbase
 
-# Exchange API Credentials (optional, only needed for private tools)
+# ==========================================
+# Exchange API Credentials
+# ==========================================
+# Only needed for private tools (balance, orders, etc)
+# Leave empty to use public tools only
+
 BINANCE_API_KEY=your_binance_api_key
 BINANCE_SECRET=your_binance_secret
 
@@ -44,6 +84,13 @@ KRAKEN_SECRET=your_kraken_secret
 
 # Add credentials for other exchanges as needed
 ```
+
+**Security Recommendations**:
+1. **Always enable SAFE_MODE** unless trading is explicitly required
+2. Use **separate API keys** for read-only vs trading operations
+3. Enable **IP restrictions** on exchange API keys
+4. **Never commit** `.env` file to version control
+5. See [SECURITY.md](SECURITY.md) for complete security guide
 
 ## Running the Server
 
