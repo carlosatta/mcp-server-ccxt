@@ -743,14 +743,14 @@ export const publicToolsHandlers = {
   load_markets: async (args) => {
     const exchangeName = args.exchange || DEFAULT_EXCHANGE;
     const exchange = getExchange(exchangeName);
-    
+
     // Load markets (with cache unless reload=true)
     await exchange.loadMarkets(args.reload);
-    
+
     // Get all markets and filter for SPOT only
     let markets = Object.values(exchange.markets);
     markets = markets.filter((market) => market.spot === true || market.type === 'spot');
-    
+
     // Map to simplified format
     const spotMarkets = markets.map((market) => ({
       symbol: market.symbol,

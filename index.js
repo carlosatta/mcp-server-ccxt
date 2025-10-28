@@ -8,6 +8,7 @@ import { randomUUID } from "crypto";
 import express from "express";
 import cors from "cors";
 import { createMCPServer } from "./src/mcpServer.js";
+import { setupRestApi } from "./src/restApi.js";
 import {
   SERVER_CONFIG,
   SUPPORTED_EXCHANGES,
@@ -43,6 +44,11 @@ const server = createMCPServer();
 // Store transports by session ID with metadata
 const transports = new Map();
 const sessionMetadata = new Map();
+
+//=============================================================================
+// REST API ENDPOINTS
+//=============================================================================
+setupRestApi(app, transports, sessionMetadata);
 
 //=============================================================================
 // MCP ENDPOINT - Streamable HTTP Transport (Protocol 2025-03-26)
@@ -198,10 +204,12 @@ setInterval(() => {
 
 app.listen(PORT, HOST, () => {
   console.log("=".repeat(60));
-  console.log(`🚀 MCP CCXT Server`);
+  console.log(`🚀 MCP CCXT Server v${SERVER_CONFIG.version}`);
   console.log("=".repeat(60));
-  console.log(`🌐 ${HOST}:${PORT}/mcp`);
-  console.log(`� Protocol: Streamable HTTP (2025-03-26)`);
+  console.log(`📡 MCP Endpoint: http://${HOST}:${PORT}/mcp`);
+  console.log(`🔌 REST API: http://${HOST}:${PORT}/api/tools`);
+  console.log(`📊 Status: http://${HOST}:${PORT}/api/status`);
+  console.log(`📖 Documentation: http://${HOST}:${PORT}/`);
   console.log(`💱 Exchanges: ${SUPPORTED_EXCHANGES.join(", ")}`);
   console.log("=".repeat(60));
 });
