@@ -109,7 +109,7 @@ app.all('/mcp', async (req, res) => {
       });
       return;
     } else {
-      // Session ID provided but not found - create new session
+      // Session ID provided but not found - treat as initialize
       transport = new StreamableHTTPServerTransport({
         sessionIdGenerator: () => sessionId,
         onsessioninitialized: (newSessionId) => {
@@ -134,6 +134,17 @@ app.all('/mcp', async (req, res) => {
       };
 
       await server.connect(transport);
+      
+      // If not initialize method, send initialize first
+      if (req.body?.method !== 'initialize') {
+        // Auto-initialize
+        await transport.handleRequest(req, res, {
+          jsonrpc: '2.0',
+          id: 0,
+          method: 'initialize',
+          params: {}
+        });
+      }
     }
 
     // Set response timeout
