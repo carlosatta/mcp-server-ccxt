@@ -14,7 +14,13 @@ export const SERVER_CONFIG = {
   host: process.env.HOST || "0.0.0.0",
   port: parseInt(process.env.PORT) || 3000,
   logLevel: process.env.LOG_LEVEL || "info",
-  requestTimeout: 60000, // 60 seconds timeout for requests
+  requestTimeout: 30000, // 30 seconds timeout for requests
+  
+  // Session management configuration
+  sessionTimeout: parseInt(process.env.SESSION_TIMEOUT_MS) || 300000, // 5 minutes
+  sessionCleanupInterval: parseInt(process.env.SESSION_CLEANUP_INTERVAL_MS) || 30000, // 30 seconds
+  allowAutoSessionRecreate: process.env.ALLOW_AUTO_SESSION_RECREATE === 'true', // Default: false (standard compliant)
+  maxSessionErrors: parseInt(process.env.MAX_SESSION_ERRORS) || 10, // Disabled if 0
 };
 
 export const SUPPORTED_EXCHANGES = [

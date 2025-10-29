@@ -55,7 +55,6 @@ setupRestApi(app, transports, sessionMetadata);
 //=============================================================================
 app.all('/mcp', async (req, res) => {
   const sessionId = req.headers['mcp-session-id'];
-  const requestTimeout = 30000; // 30 seconds timeout per request
 
   try {
     let transport;
@@ -70,12 +69,9 @@ app.all('/mcp', async (req, res) => {
         metadata.lastActivity = new Date();
       }
     } else if (req.method === 'POST' && req.body?.method === 'initialize') {
-      // Create new transport for initialization
-      // Accept session ID from client if provided, otherwise generate new one
-      const useSessionId = sessionId || randomUUID();
-
+      // Create new transport for initialization - STANDARD: generate new UUID
       transport = new StreamableHTTPServerTransport({
-        sessionIdGenerator: () => useSessionId,
+        sessionIdGenerator: () => randomUUID(),
         onsessioninitialized: (newSessionId) => {
           transports.set(newSessionId, transport);
           sessionMetadata.set(newSessionId, {
@@ -83,8 +79,6 @@ app.all('/mcp', async (req, res) => {
             lastActivity: new Date(),
             clientIp: req.ip,
             userAgent: req.get('user-agent'),
-            requestCount: 0,
-            errorCount: 0
           });
         }
       });
@@ -105,20 +99,18 @@ app.all('/mcp', async (req, res) => {
       res.status(400).json({
         jsonrpc: '2.0',
         error: {
-          code: -32000,
-          message: 'Bad Request: Session ID required (call initialize first)'
+          code: -32600,
+          message: 'Invalid Request: Session ID required'
         },
         id: req.body?.id || null
       });
       return;
-    } else {
-      // Session ID provided but unknown - auto-recreate session (fallback for non-compliant clients)
-      console.warn(`⚠️ Session ${sessionId} expired/unknown, auto-recreating (fallback for client compatibility)`);
-
-      const useSessionId = sessionId; // Keep client's session ID
-
+    } else if (SERVER_CONFIG.allowAutoSessionRecreate) {
+      // NON-STANDARD: Auto-recreate session for non-compliant clients (configurable)
+      console.warn(`⚠️ Session ${sessionId} not found, auto-recreating (non-standard behavior)`);
+      
       transport = new StreamableHTTPServerTransport({
-        sessionIdGenerator: () => useSessionId,
+        sessionIdGenerator: () => sessionId,
         onsessioninitialized: (newSessionId) => {
           transports.set(newSessionId, transport);
           sessionMetadata.set(newSessionId, {
@@ -126,9 +118,7 @@ app.all('/mcp', async (req, res) => {
             lastActivity: new Date(),
             clientIp: req.ip,
             userAgent: req.get('user-agent'),
-            requestCount: 0,
-            errorCount: 0,
-            autoRecreated: true // Flag per indicare sessione ricreata automaticamente
+            autoRecreated: true
           });
         }
       });
@@ -142,80 +132,62 @@ app.all('/mcp', async (req, res) => {
       };
 
       await server.connect(transport);
-
-      // Auto-initialize the session before processing the actual request
+      
+      // Auto-initialize the session
       if (req.body?.method !== 'initialize') {
-        // Force initialize internally to make session ready
-        try {
-          // Trigger session initialization
-          transport.sessionId = useSessionId;
-          transports.set(useSessionId, transport);
-          sessionMetadata.set(useSessionId, {
-            connectedAt: new Date(),
-            lastActivity: new Date(),
-            clientIp: req.ip,
-            userAgent: req.get('user-agent'),
-            requestCount: 0,
-            errorCount: 0,
-            autoRecreated: true
-          });
-        } catch (initError) {
-          console.error(`Failed to auto-initialize session ${sessionId}:`, initError.message);
-        }
+        transport.sessionId = sessionId;
+        transports.set(sessionId, transport);
+        sessionMetadata.set(sessionId, {
+          connectedAt: new Date(),
+          lastActivity: new Date(),
+          clientIp: req.ip,
+          userAgent: req.get('user-agent'),
+          autoRecreated: true
+        });
       }
+    } else {
+      // STANDARD: Session not found - return 404
+      res.status(404).json({
+        jsonrpc: '2.0',
+        error: {
+          code: -32004,
+          message: 'Session not found'
+        },
+        id: req.body?.id || null
+      });
+      return;
     }
 
     // Set response timeout
     const timeoutId = setTimeout(() => {
       if (!res.headersSent) {
         console.error(`⏰ Request timeout for session ${sessionId}`);
-        // Don't close transport, just fail this request
         res.status(504).json({
           jsonrpc: '2.0',
           error: {
             code: -32001,
-            message: 'Gateway Timeout: Request exceeded 30 seconds'
+            message: 'Gateway Timeout: Request exceeded timeout'
           },
           id: req.body?.id || null
         });
       }
-    }, requestTimeout);
+    }, SERVER_CONFIG.requestTimeout);
 
     // Handle the request with timeout protection
     try {
       await Promise.race([
         transport.handleRequest(req, res, req.body),
         new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Request timeout')), requestTimeout)
+          setTimeout(() => reject(new Error('Request timeout')), SERVER_CONFIG.requestTimeout)
         )
       ]);
       clearTimeout(timeoutId);
 
-      // Update metadata on success
-      const metadata = sessionMetadata.get(sessionId);
-      if (metadata) {
-        metadata.requestCount = (metadata.requestCount || 0) + 1;
-      }
     } catch (error) {
       clearTimeout(timeoutId);
 
-      // Update error count but keep session alive
-      const metadata = sessionMetadata.get(sessionId);
-      if (metadata) {
-        metadata.errorCount = (metadata.errorCount || 0) + 1;
-      }
-
-      // If too many errors, recreate transport
-      if (metadata && metadata.errorCount > 5) {
-        console.error(`🔄 Too many errors for session ${sessionId}, recreating transport`);
-        try {
-          transport.close();
-        } catch (e) {
-          // Ignore close errors
-        }
-        transports.delete(sessionId);
-        sessionMetadata.delete(sessionId);
-      }
+      // Log error but don't modify session metadata for errors
+      console.error(`❌ Request error for session ${sessionId}:`, error.message);
 
       throw error;
     }
@@ -236,15 +208,15 @@ app.all('/mcp', async (req, res) => {
   }
 });
 
-// Cleanup inactive sessions every 30 seconds (5min timeout)
-const INACTIVE_TIMEOUT_MS = 300 * 1000; // 5 minutes (was 60s)
+// Session cleanup with configurable intervals
 setInterval(() => {
   const now = new Date();
   for (const [sessionId, transport] of transports.entries()) {
     const metadata = sessionMetadata.get(sessionId);
     if (metadata && metadata.lastActivity) {
       const inactiveMs = now - metadata.lastActivity;
-      if (inactiveMs > INACTIVE_TIMEOUT_MS) {
+      if (inactiveMs > SERVER_CONFIG.sessionTimeout) {
+        console.log(`🧹 Cleaning up inactive session ${sessionId} (${inactiveMs}ms inactive)`);
         try {
           transport.close();
           transports.delete(sessionId);
@@ -255,7 +227,7 @@ setInterval(() => {
       }
     }
   }
-}, 30000); // Check every 30 seconds (was 10s)
+}, SERVER_CONFIG.sessionCleanupInterval);
 
 app.listen(PORT, HOST, () => {
   console.log("=".repeat(60));
@@ -266,5 +238,8 @@ app.listen(PORT, HOST, () => {
   console.log(`📊 Status: http://${HOST}:${PORT}/api/status`);
   console.log(`📖 Documentation: http://${HOST}:${PORT}/`);
   console.log(`💱 Exchanges: ${SUPPORTED_EXCHANGES.join(", ")}`);
+  console.log(`⚙️  MCP Standard Mode: ${!SERVER_CONFIG.allowAutoSessionRecreate ? 'ENABLED' : 'DISABLED'}`);
+  console.log(`⏱️  Session Timeout: ${SERVER_CONFIG.sessionTimeout/1000}s`);
+  console.log(`🧹 Cleanup Interval: ${SERVER_CONFIG.sessionCleanupInterval/1000}s`);
   console.log("=".repeat(60));
 });
