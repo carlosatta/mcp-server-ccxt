@@ -378,52 +378,70 @@ export const privateToolsHandlers = {
    * Handler for account_balance
    */
   account_balance: async (args) => {
-    const exchangeName = args.exchange || DEFAULT_EXCHANGE;
-    const credentials = getExchangeCredentials(exchangeName);
+    try {
+      const exchangeName = args.exchange || DEFAULT_EXCHANGE;
+      const credentials = getExchangeCredentials(exchangeName);
 
-    if (!credentials) {
-      throw new Error(
-        `No credentials configured for ${exchangeName}. Please set ${exchangeName.toUpperCase()}_API_KEY and ${exchangeName.toUpperCase()}_SECRET in .env file.`
-      );
-    }
-
-    const exchange = getExchange(exchangeName, credentials);
-    await exchange.loadMarkets();
-
-    const balance = await exchange.fetchBalance();
-
-    // Filter out zero balances
-    const nonZeroBalances = {};
-    for (const [currency, data] of Object.entries(balance)) {
-      if (
-        typeof data === "object" &&
-        data.total !== undefined &&
-        data.total > 0
-      ) {
-        nonZeroBalances[currency] = {
-          free: data.free,
-          used: data.used,
-          total: data.total,
+      if (!credentials) {
+        return {
+          isError: true,
+          content: [
+            {
+              type: "text",
+              text: `No credentials configured for ${exchangeName}. Please set ${exchangeName.toUpperCase()}_API_KEY and ${exchangeName.toUpperCase()}_SECRET in .env file.`,
+            },
+          ],
         };
       }
-    }
 
-    return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify(
-            {
-              exchange: exchangeName,
-              timestamp: Date.now(),
-              balances: nonZeroBalances,
-            },
-            null,
-            2
-          ),
-        },
-      ],
-    };
+      const exchange = getExchange(exchangeName, credentials);
+      await exchange.loadMarkets();
+
+      const balance = await exchange.fetchBalance();
+
+      // Filter out zero balances
+      const nonZeroBalances = {};
+      for (const [currency, data] of Object.entries(balance)) {
+        if (
+          typeof data === "object" &&
+          data.total !== undefined &&
+          data.total > 0
+        ) {
+          nonZeroBalances[currency] = {
+            free: data.free,
+            used: data.used,
+            total: data.total,
+          };
+        }
+      }
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(
+              {
+                exchange: exchangeName,
+                timestamp: Date.now(),
+                balances: nonZeroBalances,
+              },
+              null,
+              2
+            ),
+          },
+        ],
+      };
+    } catch (error) {
+      return {
+        isError: true,
+        content: [
+          {
+            type: "text",
+            text: `Error fetching account balance: ${error.message}`,
+          },
+        ],
+      };
+    }
   },
 
   /**
@@ -497,52 +515,70 @@ export const privateToolsHandlers = {
    * Handler for place_market_order
    */
   place_market_order: async (args) => {
-    const exchangeName = args.exchange || DEFAULT_EXCHANGE;
-    const credentials = getExchangeCredentials(exchangeName);
+    try {
+      const exchangeName = args.exchange || DEFAULT_EXCHANGE;
+      const credentials = getExchangeCredentials(exchangeName);
 
-    if (!credentials) {
-      throw new Error(
-        `No credentials configured for ${exchangeName}. Please set ${exchangeName.toUpperCase()}_API_KEY and ${exchangeName.toUpperCase()}_SECRET in .env file.`
-      );
-    }
-
-    const exchange = getExchange(exchangeName, credentials);
-    await exchange.loadMarkets();
-
-    let order;
-
-    // Special handling for Coinbase market buy orders
-    if (exchangeName === 'coinbase' && args.side === 'buy') {
-      // Coinbase requires "quoteOrderQty" parameter for market buy orders (spend X USDC to buy BTC)
-      // The amount represents how much quote currency (e.g. USDC) to spend
-      order = await exchange.createMarketBuyOrderWithCost(
-        args.symbol,
-        args.amount
-      );
-    } else {
-      // Standard market order for other exchanges or sell orders
-      order = await exchange.createMarketOrder(
-        args.symbol,
-        args.side,
-        args.amount
-      );
-    }
-
-    return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify(
+      if (!credentials) {
+        return {
+          isError: true,
+          content: [
             {
-              exchange: exchangeName,
-              order: order,
+              type: "text",
+              text: `No credentials configured for ${exchangeName}. Please set ${exchangeName.toUpperCase()}_API_KEY and ${exchangeName.toUpperCase()}_SECRET in .env file.`,
             },
-            null,
-            2
-          ),
-        },
-      ],
-    };
+          ],
+        };
+      }
+
+      const exchange = getExchange(exchangeName, credentials);
+      await exchange.loadMarkets();
+
+      let order;
+
+      // Special handling for Coinbase market buy orders
+      if (exchangeName === 'coinbase' && args.side === 'buy') {
+        // Coinbase requires "quoteOrderQty" parameter for market buy orders (spend X USDC to buy BTC)
+        // The amount represents how much quote currency (e.g. USDC) to spend
+        order = await exchange.createMarketBuyOrderWithCost(
+          args.symbol,
+          args.amount
+        );
+      } else {
+        // Standard market order for other exchanges or sell orders
+        order = await exchange.createMarketOrder(
+          args.symbol,
+          args.side,
+          args.amount
+        );
+      }
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(
+              {
+                exchange: exchangeName,
+                order: order,
+              },
+              null,
+              2
+            ),
+          },
+        ],
+      };
+    } catch (error) {
+      return {
+        isError: true,
+        content: [
+          {
+            type: "text",
+            text: `Error placing market order: ${error.message}`,
+          },
+        ],
+      };
+    }
   },
 
   /**

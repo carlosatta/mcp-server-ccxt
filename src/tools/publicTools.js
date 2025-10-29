@@ -1013,23 +1013,37 @@ export const publicToolsHandlers = {
    * Handler for get_open_orders
    */
   get_open_orders: async (args) => {
-    const exchangeName = args.exchange || DEFAULT_EXCHANGE;
-    const credentials = getExchangeCredentials(exchangeName);
-
-    if (!credentials) {
-      throw new Error(
-        `No credentials configured for ${exchangeName}. Please set ${exchangeName.toUpperCase()}_API_KEY and ${exchangeName.toUpperCase()}_SECRET in .env file.`
-      );
-    }
-
-    const exchange = getExchange(exchangeName, credentials);
-    await exchange.loadMarkets();
-
-    if (!exchange.has.fetchOpenOrders) {
-      throw new Error(`${exchangeName} does not support fetchOpenOrders`);
-    }
-
     try {
+      const exchangeName = args.exchange || DEFAULT_EXCHANGE;
+      const credentials = getExchangeCredentials(exchangeName);
+
+      if (!credentials) {
+        return {
+          isError: true,
+          content: [
+            {
+              type: "text",
+              text: `No credentials configured for ${exchangeName}. Please set ${exchangeName.toUpperCase()}_API_KEY and ${exchangeName.toUpperCase()}_SECRET in .env file.`,
+            },
+          ],
+        };
+      }
+
+      const exchange = getExchange(exchangeName, credentials);
+      await exchange.loadMarkets();
+
+      if (!exchange.has.fetchOpenOrders) {
+        return {
+          isError: true,
+          content: [
+            {
+              type: "text",
+              text: `${exchangeName} does not support fetchOpenOrders`,
+            },
+          ],
+        };
+      }
+
       const orders = await exchange.fetchOpenOrders(args.symbol);
 
       return {
@@ -1050,7 +1064,15 @@ export const publicToolsHandlers = {
         ],
       };
     } catch (error) {
-      throw error;
+      return {
+        isError: true,
+        content: [
+          {
+            type: "text",
+            text: `Error fetching open orders: ${error.message}`,
+          },
+        ],
+      };
     }
   },
 
