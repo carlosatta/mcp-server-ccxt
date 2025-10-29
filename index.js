@@ -39,11 +39,12 @@ app.use(cors({
 }));
 app.use(express.json());
 
-const server = createMCPServer();
 
 // Store transports by session ID with metadata
 const transports = new Map();
 const sessionMetadata = new Map();
+// Track per-session MCP server instances to prevent cross-session serialization
+const sessionServers = new Map();
 
 //=============================================================================
 // REST API ENDPOINTS
@@ -58,10 +59,19 @@ app.all('/mcp', async (req, res) => {
 
   try {
     let transport;
+    let server;
 
     if (sessionId && transports.has(sessionId)) {
       // Reuse existing transport
       transport = transports.get(sessionId);
+      server = sessionServers.get(sessionId);
+
+      if (!server) {
+        console.warn(`⚠️ Session ${sessionId} missing server instance, recreating handler context`);
+        server = createMCPServer();
+        sessionServers.set(sessionId, server);
+        await server.connect(transport);
+      }
 
       // Update last activity
       const metadata = sessionMetadata.get(sessionId);
@@ -70,10 +80,12 @@ app.all('/mcp', async (req, res) => {
       }
     } else if (req.method === 'POST' && req.body?.method === 'initialize') {
       // Create new transport for initialization - STANDARD: generate new UUID
+      server = createMCPServer();
       transport = new StreamableHTTPServerTransport({
         sessionIdGenerator: () => randomUUID(),
         onsessioninitialized: (newSessionId) => {
           transports.set(newSessionId, transport);
+          sessionServers.set(newSessionId, server);
           sessionMetadata.set(newSessionId, {
             connectedAt: new Date(),
             lastActivity: new Date(),
@@ -89,6 +101,7 @@ app.all('/mcp', async (req, res) => {
         if (sid && transports.has(sid)) {
           transports.delete(sid);
           sessionMetadata.delete(sid);
+          sessionServers.delete(sid);
         }
       };
 
@@ -111,10 +124,12 @@ app.all('/mcp', async (req, res) => {
       console.warn(`⚠️ COMPATIBILITY MODE: Session ${sessionId} not found, auto-recreating (non-standard behavior)`);
       console.warn(`⚠️ Set ALLOW_AUTO_SESSION_RECREATE=false to use strict MCP standard (404 response)`);
 
+      server = createMCPServer();
       transport = new StreamableHTTPServerTransport({
         sessionIdGenerator: () => sessionId,
         onsessioninitialized: (newSessionId) => {
           transports.set(newSessionId, transport);
+          sessionServers.set(newSessionId, server);
           sessionMetadata.set(newSessionId, {
             connectedAt: new Date(),
             lastActivity: new Date(),
@@ -130,6 +145,7 @@ app.all('/mcp', async (req, res) => {
         if (sid && transports.has(sid)) {
           transports.delete(sid);
           sessionMetadata.delete(sid);
+          sessionServers.delete(sid);
         }
       };
 
@@ -139,6 +155,7 @@ app.all('/mcp', async (req, res) => {
       if (req.body?.method !== 'initialize') {
         transport.sessionId = sessionId;
         transports.set(sessionId, transport);
+        sessionServers.set(sessionId, server);
         sessionMetadata.set(sessionId, {
           connectedAt: new Date(),
           lastActivity: new Date(),
@@ -216,6 +233,7 @@ setInterval(() => {
           transport.close();
           transports.delete(sessionId);
           sessionMetadata.delete(sessionId);
+          sessionServers.delete(sessionId);
         } catch (error) {
           console.error(`Error closing session ${sessionId}:`, error.message);
         }
