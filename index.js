@@ -73,7 +73,7 @@ app.all('/mcp', async (req, res) => {
       // Create new transport for initialization
       // Accept session ID from client if provided, otherwise generate new one
       const useSessionId = sessionId || randomUUID();
-      
+
       transport = new StreamableHTTPServerTransport({
         sessionIdGenerator: () => useSessionId,
         onsessioninitialized: (newSessionId) => {
@@ -112,16 +112,57 @@ app.all('/mcp', async (req, res) => {
       });
       return;
     } else {
-      // Session ID provided but unknown - session expired or invalid
-      res.status(404).json({
-        jsonrpc: '2.0',
-        error: {
-          code: -32001,
-          message: 'Not Found: Session expired or invalid (call initialize to create new session)'
-        },
-        id: req.body?.id || null
+      // Session ID provided but unknown - auto-recreate session (fallback for non-compliant clients)
+      console.warn(`⚠️ Session ${sessionId} expired/unknown, auto-recreating (fallback for client compatibility)`);
+      
+      const useSessionId = sessionId; // Keep client's session ID
+      
+      transport = new StreamableHTTPServerTransport({
+        sessionIdGenerator: () => useSessionId,
+        onsessioninitialized: (newSessionId) => {
+          transports.set(newSessionId, transport);
+          sessionMetadata.set(newSessionId, {
+            connectedAt: new Date(),
+            lastActivity: new Date(),
+            clientIp: req.ip,
+            userAgent: req.get('user-agent'),
+            requestCount: 0,
+            errorCount: 0,
+            autoRecreated: true // Flag per indicare sessione ricreata automaticamente
+          });
+        }
       });
-      return;
+
+      transport.onclose = () => {
+        const sid = transport.sessionId;
+        if (sid && transports.has(sid)) {
+          transports.delete(sid);
+          sessionMetadata.delete(sid);
+        }
+      };
+
+      await server.connect(transport);
+      
+      // Auto-initialize the session before processing the actual request
+      if (req.body?.method !== 'initialize') {
+        // Force initialize internally to make session ready
+        try {
+          // Trigger session initialization
+          transport.sessionId = useSessionId;
+          transports.set(useSessionId, transport);
+          sessionMetadata.set(useSessionId, {
+            connectedAt: new Date(),
+            lastActivity: new Date(),
+            clientIp: req.ip,
+            userAgent: req.get('user-agent'),
+            requestCount: 0,
+            errorCount: 0,
+            autoRecreated: true
+          });
+        } catch (initError) {
+          console.error(`Failed to auto-initialize session ${sessionId}:`, initError.message);
+        }
+      }
     }
 
     // Set response timeout
@@ -195,8 +236,8 @@ app.all('/mcp', async (req, res) => {
   }
 });
 
-// Cleanup inactive sessions every 10 seconds (60s timeout)
-const INACTIVE_TIMEOUT_MS = 60 * 1000;
+// Cleanup inactive sessions every 30 seconds (5min timeout)
+const INACTIVE_TIMEOUT_MS = 300 * 1000; // 5 minutes (was 60s)
 setInterval(() => {
   const now = new Date();
   for (const [sessionId, transport] of transports.entries()) {
@@ -214,7 +255,7 @@ setInterval(() => {
       }
     }
   }
-}, 10000);
+}, 30000); // Check every 30 seconds (was 10s)
 
 app.listen(PORT, HOST, () => {
   console.log("=".repeat(60));
