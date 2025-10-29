@@ -165,15 +165,15 @@ app.all('/mcp', async (req, res) => {
     // ⚠️ NO GLOBAL TIMEOUT - Handled at tool level
     // Each tool implements its own timeout (default: 20s for CCXT operations)
     // This prevents session blocking and allows immediate error responses
-    
+
     try {
       // Handle request directly without global timeout wrapper
       await transport.handleRequest(req, res, req.body);
-      
+
     } catch (error) {
       // Log errors but let tools handle their own error responses
       console.error(`❌ Request error for session ${sessionId}:`, error.message);
-      
+
       // If the error wasn't already handled by the tool, return internal error
       if (!res.headersSent) {
         res.status(500).json({

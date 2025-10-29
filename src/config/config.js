@@ -14,24 +14,24 @@ export const SERVER_CONFIG = {
   host: process.env.HOST || "0.0.0.0",
   port: parseInt(process.env.PORT) || 3000,
   logLevel: process.env.LOG_LEVEL || "info",
-  
+
   // ⚠️ TIMEOUT CONFIGURATION
   // Global request timeout removed - timeout is handled at tool level
   // Each tool should implement its own timeout (default: 20s for CCXT operations)
   requestTimeout: parseInt(process.env.REQUEST_TIMEOUT_MS) || null, // null = disabled (recommended)
-  
+
   // Tool-specific timeout for CCXT operations (can be overridden per-tool)
   toolTimeout: parseInt(process.env.TOOL_TIMEOUT_MS) || 20000, // 20 seconds
 
   // Session management configuration
   sessionTimeout: parseInt(process.env.SESSION_TIMEOUT_MS) || 600000, // 10 minutes (increased from 5)
   sessionCleanupInterval: parseInt(process.env.SESSION_CLEANUP_INTERVAL_MS) || 30000, // 30 seconds
-  
+
   // ⚠️ STRICT MCP COMPLIANCE MODE (default: false to respect MCP standard)
   // When false (strict mode): returns 404 for missing sessions - standard MCP behavior
   // When true (compatibility mode): auto-recreates sessions for legacy clients
   allowAutoSessionRecreate: process.env.ALLOW_AUTO_SESSION_RECREATE === 'true', // Default: false (strict mode)
-  
+
   maxSessionErrors: parseInt(process.env.MAX_SESSION_ERRORS) || 10, // Disabled if 0
 };
 

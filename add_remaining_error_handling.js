@@ -14,7 +14,7 @@ const files = [
 const toolsNeedingProtection = {
   privateTools: [
     'cancel_all_orders',
-    'set_leverage', 
+    'set_leverage',
     'set_margin_mode',
     'place_futures_market_order',
     'place_futures_limit_order',
@@ -30,7 +30,7 @@ const toolsNeedingProtection = {
 
 files.forEach(filePath => {
   console.log(`\n📝 Processing: ${filePath}`);
-  
+
   if (!fs.existsSync(filePath)) {
     console.log(`⚠️  Skipping ${filePath} - file not found`);
     return;
