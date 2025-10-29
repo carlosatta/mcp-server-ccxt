@@ -6,6 +6,7 @@
 import { getExchange } from "../utils/exchangeManager.js";
 import { SUPPORTED_EXCHANGES, TIMEFRAMES, LIMITS, DEFAULT_EXCHANGE, getExchangeCredentials } from "../config/config.js";
 import ccxt from "ccxt";
+import { withTimeout, DEFAULT_CCXT_TIMEOUT } from "../utils/withTimeout.js";
 
 /**
  * Public tools definitions for MCP
@@ -1044,7 +1045,11 @@ export const publicToolsHandlers = {
         };
       }
 
-      const orders = await exchange.fetchOpenOrders(args.symbol);
+      const orders = await withTimeout(
+        exchange.fetchOpenOrders(args.symbol),
+        DEFAULT_CCXT_TIMEOUT,
+        'fetchOpenOrders'
+      );
 
       return {
         content: [
@@ -1101,9 +1106,17 @@ export const publicToolsHandlers = {
       let orders;
 
       if (exchange.has.fetchClosedOrders) {
-        orders = await exchange.fetchClosedOrders(args.symbol, args.since, limit);
+        orders = await withTimeout(
+          exchange.fetchClosedOrders(args.symbol, args.since, limit),
+          DEFAULT_CCXT_TIMEOUT,
+          'fetchClosedOrders'
+        );
       } else {
-        orders = await exchange.fetchOrders(args.symbol, args.since, limit);
+        orders = await withTimeout(
+          exchange.fetchOrders(args.symbol, args.since, limit),
+          DEFAULT_CCXT_TIMEOUT,
+          'fetchOrders'
+        );
       }
 
       return {
@@ -1287,7 +1300,11 @@ export const publicToolsHandlers = {
     }
 
     const limit = args.limit || 50;
-    const trades = await exchange.fetchMyTrades(args.symbol, args.since, limit);
+    const trades = await withTimeout(
+      exchange.fetchMyTrades(args.symbol, args.since, limit),
+      DEFAULT_CCXT_TIMEOUT,
+      'fetchMyTrades'
+    );
 
     return {
       content: [
@@ -1328,7 +1345,11 @@ export const publicToolsHandlers = {
       throw new Error(`${exchangeName} does not support fetchOrder`);
     }
 
-    const order = await exchange.fetchOrder(args.orderId, args.symbol);
+    const order = await withTimeout(
+      exchange.fetchOrder(args.orderId, args.symbol),
+      DEFAULT_CCXT_TIMEOUT,
+      'fetchOrder'
+    );
 
     return {
       content: [
@@ -1368,7 +1389,11 @@ export const publicToolsHandlers = {
     }
 
     const limit = args.limit || 100;
-    const orders = await exchange.fetchOrders(args.symbol, args.since, limit);
+    const orders = await withTimeout(
+      exchange.fetchOrders(args.symbol, args.since, limit),
+      DEFAULT_CCXT_TIMEOUT,
+      'fetchOrders'
+    );
 
     return {
       content: [

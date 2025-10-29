@@ -9,6 +9,7 @@ import {
   SUPPORTED_EXCHANGES,
   DEFAULT_EXCHANGE,
 } from "../config/config.js";
+import { withTimeout, DEFAULT_CCXT_TIMEOUT } from "../utils/withTimeout.js";
 
 /**
  * Private tools definitions for MCP
@@ -397,7 +398,11 @@ export const privateToolsHandlers = {
       const exchange = getExchange(exchangeName, credentials);
       await exchange.loadMarkets();
 
-      const balance = await exchange.fetchBalance();
+      const balance = await withTimeout(
+        exchange.fetchBalance(),
+        DEFAULT_CCXT_TIMEOUT,
+        'fetchBalance'
+      );
 
       // Filter out zero balances
       const nonZeroBalances = {};
@@ -471,10 +476,18 @@ export const privateToolsHandlers = {
 
       // Try to fetch accounts if the exchange supports it
       if (exchange.has["fetchAccounts"]) {
-        accounts = await exchange.fetchAccounts();
+        accounts = await withTimeout(
+          exchange.fetchAccounts(),
+          DEFAULT_CCXT_TIMEOUT,
+          'fetchAccounts'
+        );
       } else if (exchange.has["fetchBalance"]) {
         // Fallback: get balance and try to extract account information
-        const balance = await exchange.fetchBalance();
+        const balance = await withTimeout(
+          exchange.fetchBalance(),
+          DEFAULT_CCXT_TIMEOUT,
+          'fetchBalance'
+        );
 
         // For some exchanges, balance.info might contain account details
         if (balance.info && Array.isArray(balance.info)) {
@@ -741,7 +754,11 @@ export const privateToolsHandlers = {
 
       if (!exchange.has.cancelAllOrders) {
         // Fallback: fetch open orders and cancel individually
-        const openOrders = await exchange.fetchOpenOrders(args.symbol);
+        const openOrders = await withTimeout(
+          exchange.fetchOpenOrders(args.symbol),
+          DEFAULT_CCXT_TIMEOUT,
+          'fetchOpenOrders'
+        );
         const results = [];
 
         for (const order of openOrders) {
