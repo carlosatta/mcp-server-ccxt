@@ -57,7 +57,7 @@ function createExchangeInstance(name, credentials) {
       };
 
   let exchange;
-  
+
   switch (name) {
     case "coinbase":
       exchange = new ccxt.coinbase(config);
@@ -79,7 +79,7 @@ function createExchangeInstance(name, credentials) {
 
   // Ensure timeout is set (some exchanges might override it)
   exchange.timeout = 10000;
-  
+
   return exchange;
 }
 

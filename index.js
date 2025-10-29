@@ -189,19 +189,19 @@ app.all('/mcp', async (req, res) => {
       // On timeout, close and cleanup the session to prevent transport blocking
       if (error.message === 'Request timeout') {
         console.error(`⏰ Request timeout for session ${sessionId} - closing transport to prevent blocking`);
-        
+
         try {
           // Close the transport if it exists
           if (transport && typeof transport.close === 'function') {
             transport.close();
           }
-          
+
           // Remove session from maps
           if (sessionId) {
             transports.delete(sessionId);
             sessionMetadata.delete(sessionId);
           }
-          
+
           console.log(`🧹 Session ${sessionId} cleaned up after timeout`);
         } catch (cleanupError) {
           console.error(`❌ Error cleaning up session ${sessionId}:`, cleanupError.message);

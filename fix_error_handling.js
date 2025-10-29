@@ -13,24 +13,24 @@ const files = [
 const handlersToFix = [
   // Private tools (remaining ones)
   'set_margin_mode',
-  'place_futures_market_order', 
+  'place_futures_market_order',
   'place_futures_limit_order',
   'transfer_funds',
   'get_portfolios',
   'get_portfolio_details',
   'edit_order',
-  
+
   // Public tools that use credentials and can cause transport blocking
   'get_open_orders',
   'get_order_history',
-  'get_trading_fees', 
+  'get_trading_fees',
   'get_my_trades',
   'get_order_details'
 ];
 
 files.forEach(filePath => {
   console.log(`Processing: ${filePath}`);
-  
+
   if (!fs.existsSync(filePath)) {
     console.log(`Skipping ${filePath} - file not found`);
     return;
