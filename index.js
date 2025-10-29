@@ -96,18 +96,20 @@ app.all('/mcp', async (req, res) => {
       await server.connect(transport);
     } else if (!sessionId) {
       // Invalid request - no session ID and not initialize
+      // MCP Standard: -32000 for Bad Request
       res.status(400).json({
         jsonrpc: '2.0',
         error: {
-          code: -32600,
-          message: 'Invalid Request: Session ID required'
+          code: -32000, // MCP Standard: Bad Request
+          message: 'Invalid Request: Session ID required for non-initialize requests'
         },
         id: req.body?.id || null
       });
       return;
     } else if (SERVER_CONFIG.allowAutoSessionRecreate) {
-      // NON-STANDARD: Auto-recreate session for non-compliant clients (configurable)
-      console.warn(`⚠️ Session ${sessionId} not found, auto-recreating (non-standard behavior)`);
+      // NON-STANDARD: Auto-recreate session for legacy clients (disabled by default)
+      console.warn(`⚠️ COMPATIBILITY MODE: Session ${sessionId} not found, auto-recreating (non-standard behavior)`);
+      console.warn(`⚠️ Set ALLOW_AUTO_SESSION_RECREATE=false to use strict MCP standard (404 response)`);
 
       transport = new StreamableHTTPServerTransport({
         sessionIdGenerator: () => sessionId,
@@ -146,72 +148,43 @@ app.all('/mcp', async (req, res) => {
         });
       }
     } else {
-      // STANDARD: Session not found - return 404
+      // STANDARD MCP: Session not found - return 404 with -32004
+      // This is the correct behavior per MCP specification
+      console.log(`❌ Session ${sessionId} not found - returning 404 (strict MCP mode)`);
       res.status(404).json({
         jsonrpc: '2.0',
         error: {
-          code: -32004,
-          message: 'Session not found'
+          code: -32004, // MCP Standard: Session not found
+          message: `Session not found: ${sessionId}. Client must reinitialize.`
         },
         id: req.body?.id || null
       });
       return;
     }
 
-    // Set response timeout
-    const timeoutId = setTimeout(() => {
+    // ⚠️ NO GLOBAL TIMEOUT - Handled at tool level
+    // Each tool implements its own timeout (default: 20s for CCXT operations)
+    // This prevents session blocking and allows immediate error responses
+    
+    try {
+      // Handle request directly without global timeout wrapper
+      await transport.handleRequest(req, res, req.body);
+      
+    } catch (error) {
+      // Log errors but let tools handle their own error responses
+      console.error(`❌ Request error for session ${sessionId}:`, error.message);
+      
+      // If the error wasn't already handled by the tool, return internal error
       if (!res.headersSent) {
-        console.error(`⏰ Request timeout for session ${sessionId}`);
-        res.status(504).json({
+        res.status(500).json({
           jsonrpc: '2.0',
           error: {
-            code: -32001,
-            message: 'Gateway Timeout: Request exceeded timeout'
+            code: -32603, // MCP Standard: Internal error
+            message: `Internal error: ${error.message}`
           },
           id: req.body?.id || null
         });
       }
-    }, SERVER_CONFIG.requestTimeout);
-
-    // Handle the request with timeout protection
-    try {
-      await Promise.race([
-        transport.handleRequest(req, res, req.body),
-        new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Request timeout')), SERVER_CONFIG.requestTimeout)
-        )
-      ]);
-      clearTimeout(timeoutId);
-
-    } catch (error) {
-      clearTimeout(timeoutId);
-
-      // On timeout, close and cleanup the session to prevent transport blocking
-      if (error.message === 'Request timeout') {
-        console.error(`⏰ Request timeout for session ${sessionId} - closing transport to prevent blocking`);
-
-        try {
-          // Close the transport if it exists
-          if (transport && typeof transport.close === 'function') {
-            transport.close();
-          }
-
-          // Remove session from maps
-          if (sessionId) {
-            transports.delete(sessionId);
-            sessionMetadata.delete(sessionId);
-          }
-
-          console.log(`🧹 Session ${sessionId} cleaned up after timeout`);
-        } catch (cleanupError) {
-          console.error(`❌ Error cleaning up session ${sessionId}:`, cleanupError.message);
-        }
-      } else {
-        // Log other errors but don't modify session metadata
-        console.error(`❌ Request error for session ${sessionId}:`, error.message);
-      }
-
-      throw error;
     }
   } catch (error) {
     console.error('❌ MCP Error:', error.message);

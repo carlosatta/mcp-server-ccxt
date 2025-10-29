@@ -720,29 +720,584 @@ export const privateToolsHandlers = {
    * Handler for cancel_all_orders
    */
   cancel_all_orders: async (args) => {
-    const exchangeName = args.exchange || DEFAULT_EXCHANGE;
-    const credentials = getExchangeCredentials(exchangeName);
+    try {
+      const exchangeName = args.exchange || DEFAULT_EXCHANGE;
+      const credentials = getExchangeCredentials(exchangeName);
 
-    if (!credentials) {
-      throw new Error(
-        `No credentials configured for ${exchangeName}. Please set ${exchangeName.toUpperCase()}_API_KEY and ${exchangeName.toUpperCase()}_SECRET in .env file.`
-      );
+      if (!credentials) {
+        return {
+          isError: true,
+          content: [
+            {
+              type: "text",
+              text: `No credentials configured for ${exchangeName}. Please set ${exchangeName.toUpperCase()}_API_KEY and ${exchangeName.toUpperCase()}_SECRET in .env file.`,
+            },
+          ],
+        };
+      }
+
+      const exchange = getExchange(exchangeName, credentials);
+      await exchange.loadMarkets();
+
+      if (!exchange.has.cancelAllOrders) {
+        // Fallback: fetch open orders and cancel individually
+        const openOrders = await exchange.fetchOpenOrders(args.symbol);
+        const results = [];
+
+        for (const order of openOrders) {
+          try {
+            const result = await exchange.cancelOrder(order.id, order.symbol);
+            results.push(result);
+          } catch (error) {
+            results.push({ error: error.message, orderId: order.id });
+          }
+        }
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(
+                {
+                  exchange: exchangeName,
+                  symbol: args.symbol || "all",
+                  canceled: results.length,
+                  results: results,
+                },
+                null,
+                2
+              ),
+            },
+          ],
+        };
+      }
+
+      const result = await exchange.cancelAllOrders(args.symbol);
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(
+              {
+                exchange: exchangeName,
+                symbol: args.symbol || "all",
+                result: result,
+              },
+              null,
+              2
+            ),
+          },
+        ],
+      };
+    } catch (error) {
+      console.error(`❌ Error in cancel_all_orders:`, error.message);
+      return {
+        isError: true,
+        content: [
+          {
+            type: "text",
+            text: `Error canceling all orders: ${error.message}`
+          }
+        ]
+      };
     }
+  },
 
-    const exchange = getExchange(exchangeName, credentials);
-    await exchange.loadMarkets();
+  /**
+   * Handler for set_leverage
+   */
+  set_leverage: async (args) => {
+    try {
+      const exchangeName = args.exchange || DEFAULT_EXCHANGE;
+      const credentials = getExchangeCredentials(exchangeName);
 
-    if (!exchange.has.cancelAllOrders) {
-      // Fallback: fetch open orders and cancel individually
-      const openOrders = await exchange.fetchOpenOrders(args.symbol);
-      const results = [];
+      if (!credentials) {
+        return {
+          isError: true,
+          content: [
+            {
+              type: "text",
+              text: `No credentials configured for ${exchangeName}. Please set ${exchangeName.toUpperCase()}_API_KEY and ${exchangeName.toUpperCase()}_SECRET in .env file.`,
+            },
+          ],
+        };
+      }
 
-      for (const order of openOrders) {
-        try {
-          const result = await exchange.cancelOrder(order.id, order.symbol);
-          results.push(result);
-        } catch (error) {
-          results.push({ error: error.message, orderId: order.id });
+      const exchange = getExchange(exchangeName, credentials);
+      await exchange.loadMarkets();
+
+      if (!exchange.has.setLeverage) {
+        return {
+          isError: true,
+          content: [
+            {
+              type: "text",
+              text: `${exchangeName} does not support setLeverage`,
+            },
+          ],
+        };
+      }
+
+      const result = await exchange.setLeverage(args.leverage, args.symbol);
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(
+              {
+                exchange: exchangeName,
+                symbol: args.symbol,
+                leverage: args.leverage,
+                result: result,
+              },
+              null,
+              2
+            ),
+          },
+        ],
+      };
+    } catch (error) {
+      console.error(`❌ Error in set_leverage:`, error.message);
+      return {
+        isError: true,
+        content: [
+          {
+            type: "text",
+            text: `Error setting leverage: ${error.message}`
+          }
+        ]
+      };
+    }
+  },
+
+  /**
+   * Handler for set_margin_mode
+   */
+  set_margin_mode: async (args) => {
+    try {
+      const exchangeName = args.exchange || DEFAULT_EXCHANGE;
+      const credentials = getExchangeCredentials(exchangeName);
+
+      if (!credentials) {
+        return {
+          isError: true,
+          content: [
+            {
+              type: "text",
+              text: `No credentials configured for ${exchangeName}. Please set ${exchangeName.toUpperCase()}_API_KEY and ${exchangeName.toUpperCase()}_SECRET in .env file.`,
+            },
+          ],
+        };
+      }
+
+      const exchange = getExchange(exchangeName, credentials);
+      await exchange.loadMarkets();
+
+      if (!exchange.has.setMarginMode) {
+        return {
+          isError: true,
+          content: [
+            {
+              type: "text",
+              text: `${exchangeName} does not support setMarginMode`,
+            },
+          ],
+        };
+      }
+
+      const result = await exchange.setMarginMode(args.marginMode, args.symbol);
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(
+              {
+                exchange: exchangeName,
+                symbol: args.symbol,
+                marginMode: args.marginMode,
+                result: result,
+              },
+              null,
+              2
+            ),
+          },
+        ],
+      };
+    } catch (error) {
+      console.error(`❌ Error in set_margin_mode:`, error.message);
+      return {
+        isError: true,
+        content: [
+          {
+            type: "text",
+            text: `Error setting margin mode: ${error.message}`
+          }
+        ]
+      };
+    }
+  },
+
+  /**
+   * Handler for place_futures_market_order
+   */
+  place_futures_market_order: async (args) => {
+    try {
+      const exchangeName = args.exchange || DEFAULT_EXCHANGE;
+      const credentials = getExchangeCredentials(exchangeName);
+
+      if (!credentials) {
+        return {
+          isError: true,
+          content: [
+            {
+              type: "text",
+              text: `No credentials configured for ${exchangeName}. Please set ${exchangeName.toUpperCase()}_API_KEY and ${exchangeName.toUpperCase()}_SECRET in .env file.`,
+            },
+          ],
+        };
+      }
+
+      const exchange = getExchange(exchangeName, credentials);
+      await exchange.loadMarkets();
+
+      const params = {};
+      if (args.reduceOnly !== undefined) {
+        params.reduceOnly = args.reduceOnly;
+      }
+
+      const order = await exchange.createMarketOrder(
+        args.symbol,
+        args.side,
+        args.amount,
+        params
+      );
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(
+              {
+                exchange: exchangeName,
+                type: "futures",
+                order: order,
+              },
+              null,
+              2
+            ),
+          },
+        ],
+      };
+    } catch (error) {
+      console.error(`❌ Error in place_futures_market_order:`, error.message);
+      return {
+        isError: true,
+        content: [
+          {
+            type: "text",
+            text: `Error placing futures market order: ${error.message}`
+          }
+        ]
+      };
+    }
+  },
+
+  /**
+   * Handler for place_futures_limit_order
+   */
+  place_futures_limit_order: async (args) => {
+    try {
+      const exchangeName = args.exchange || DEFAULT_EXCHANGE;
+      const credentials = getExchangeCredentials(exchangeName);
+
+      if (!credentials) {
+        return {
+          isError: true,
+          content: [
+            {
+              type: "text",
+              text: `No credentials configured for ${exchangeName}. Please set ${exchangeName.toUpperCase()}_API_KEY and ${exchangeName.toUpperCase()}_SECRET in .env file.`,
+            },
+          ],
+        };
+      }
+
+      const exchange = getExchange(exchangeName, credentials);
+      await exchange.loadMarkets();
+
+      const params = {};
+      if (args.reduceOnly !== undefined) {
+        params.reduceOnly = args.reduceOnly;
+      }
+      if (args.postOnly !== undefined) {
+        params.postOnly = args.postOnly;
+      }
+
+      const order = await exchange.createLimitOrder(
+        args.symbol,
+        args.side,
+        args.amount,
+        args.price,
+        params
+      );
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(
+              {
+                exchange: exchangeName,
+                type: "futures",
+                order: order,
+              },
+              null,
+              2
+            ),
+          },
+        ],
+      };
+    } catch (error) {
+      console.error(`❌ Error in place_futures_limit_order:`, error.message);
+      return {
+        isError: true,
+        content: [
+          {
+            type: "text",
+            text: `Error placing futures limit order: ${error.message}`
+          }
+        ]
+      };
+    }
+  },
+
+  /**
+   * Handler for transfer_funds
+   */
+  transfer_funds: async (args) => {
+    try {
+      const exchangeName = args.exchange || DEFAULT_EXCHANGE;
+      const credentials = getExchangeCredentials(exchangeName);
+
+      if (!credentials) {
+        return {
+          isError: true,
+          content: [
+            {
+              type: "text",
+              text: `No credentials configured for ${exchangeName}. Please set ${exchangeName.toUpperCase()}_API_KEY and ${exchangeName.toUpperCase()}_SECRET in .env file.`,
+            },
+          ],
+        };
+      }
+
+      const exchange = getExchange(exchangeName, credentials);
+      await exchange.loadMarkets();
+
+      if (!exchange.has.transfer) {
+        return {
+          isError: true,
+          content: [
+            {
+              type: "text",
+              text: `${exchangeName} does not support fund transfers`,
+            },
+          ],
+        };
+      }
+
+      const result = await exchange.transfer(
+        args.currency,
+        args.amount,
+        args.fromAccount,
+        args.toAccount
+      );
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(
+              {
+                exchange: exchangeName,
+                transfer: {
+                  currency: args.currency,
+                  amount: args.amount,
+                  from: args.fromAccount,
+                  to: args.toAccount,
+                },
+                result: result,
+              },
+              null,
+              2
+            ),
+          },
+        ],
+      };
+    } catch (error) {
+      console.error(`❌ Error in transfer_funds:`, error.message);
+      return {
+        isError: true,
+        content: [
+          {
+            type: "text",
+            text: `Error transferring funds: ${error.message}`
+          }
+        ]
+      };
+    }
+  },
+
+  /**
+   * Handler for get_portfolios
+   */
+  get_portfolios: async (args) => {
+    try {
+      const exchangeName = args.exchange || DEFAULT_EXCHANGE;
+      const credentials = getExchangeCredentials(exchangeName);
+
+      if (!credentials) {
+        return {
+          isError: true,
+          content: [
+            {
+              type: "text",
+              text: `No credentials configured for ${exchangeName}. Please set ${exchangeName.toUpperCase()}_API_KEY and ${exchangeName.toUpperCase()}_SECRET in .env file.`,
+            },
+          ],
+        };
+      }
+
+      if (exchangeName !== 'coinbase') {
+        return {
+          isError: true,
+          content: [
+            {
+              type: "text",
+              text: 'Portfolios are a Coinbase-specific feature. This tool only works with Coinbase exchange.',
+            },
+          ],
+        };
+      }
+
+      const exchange = getExchange(exchangeName, credentials);
+
+      if (!exchange.has.fetchPortfolios) {
+        return {
+          isError: true,
+          content: [
+            {
+              type: "text",
+              text: `${exchangeName} does not support fetchPortfolios`,
+            },
+          ],
+        };
+      }
+
+      const portfolios = await exchange.fetchPortfolios();
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(
+              {
+                exchange: exchangeName,
+                count: portfolios ? portfolios.length : 0,
+                portfolios: portfolios,
+              },
+              null,
+              2
+            ),
+          },
+        ],
+      };
+    } catch (error) {
+      console.error(`❌ Error in get_portfolios:`, error.message);
+      return {
+        isError: true,
+        content: [
+          {
+            type: "text",
+            text: `Error fetching portfolios: ${error.message}`
+          }
+        ]
+      };
+    }
+  },
+
+  /**
+   * Handler for get_portfolio_details
+   */
+  get_portfolio_details: async (args) => {
+    try {
+      const exchangeName = args.exchange || DEFAULT_EXCHANGE;
+      const credentials = getExchangeCredentials(exchangeName);
+
+      if (!credentials) {
+        return {
+          isError: true,
+          content: [
+            {
+              type: "text",
+              text: `No credentials configured for ${exchangeName}. Please set ${exchangeName.toUpperCase()}_API_KEY and ${exchangeName.toUpperCase()}_SECRET in .env file.`,
+            },
+          ],
+        };
+      }
+
+      if (exchangeName !== 'coinbase') {
+        return {
+          isError: true,
+          content: [
+            {
+              type: "text",
+              text: 'Portfolio details are a Coinbase-specific feature. This tool only works with Coinbase exchange.',
+            },
+          ],
+        };
+      }
+
+      const exchange = getExchange(exchangeName, credentials);
+
+      // Coinbase uses a custom method for portfolio breakdown
+      // This may require direct API calls or custom implementation
+      if (!exchange.has.fetchPortfolio && !exchange.has.fetchPortfolios) {
+        return {
+          isError: true,
+          content: [
+            {
+              type: "text",
+              text: `${exchangeName} does not support portfolio details`,
+            },
+          ],
+        };
+      }
+
+      // Try to fetch specific portfolio details
+      // Note: This might need adjustment based on actual Coinbase API structure
+      let portfolio;
+
+      if (exchange.has.fetchPortfolio) {
+        portfolio = await exchange.fetchPortfolio(args.portfolioId);
+      } else {
+        // Fallback: fetch all portfolios and filter
+        const portfolios = await exchange.fetchPortfolios();
+        portfolio = portfolios.find(p => p.id === args.portfolioId);
+
+        if (!portfolio) {
+          return {
+            isError: true,
+            content: [
+              {
+                type: "text",
+                text: `Portfolio ${args.portfolioId} not found`,
+              },
+            ],
+          };
         }
       }
 
@@ -753,9 +1308,8 @@ export const privateToolsHandlers = {
             text: JSON.stringify(
               {
                 exchange: exchangeName,
-                symbol: args.symbol || "all",
-                canceled: results.length,
-                results: results,
+                portfolioId: args.portfolioId,
+                portfolio: portfolio,
               },
               null,
               2
@@ -763,414 +1317,101 @@ export const privateToolsHandlers = {
           },
         ],
       };
+    } catch (error) {
+      console.error(`❌ Error in get_portfolio_details:`, error.message);
+      return {
+        isError: true,
+        content: [
+          {
+            type: "text",
+            text: `Error fetching portfolio details: ${error.message}`
+          }
+        ]
+      };
     }
-
-    const result = await exchange.cancelAllOrders(args.symbol);
-
-    return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify(
-            {
-              exchange: exchangeName,
-              symbol: args.symbol || "all",
-              result: result,
-            },
-            null,
-            2
-          ),
-        },
-      ],
-    };
-  },
-
-  /**
-   * Handler for set_leverage
-   */
-  set_leverage: async (args) => {
-    const exchangeName = args.exchange || DEFAULT_EXCHANGE;
-    const credentials = getExchangeCredentials(exchangeName);
-
-    if (!credentials) {
-      throw new Error(
-        `No credentials configured for ${exchangeName}. Please set ${exchangeName.toUpperCase()}_API_KEY and ${exchangeName.toUpperCase()}_SECRET in .env file.`
-      );
-    }
-
-    const exchange = getExchange(exchangeName, credentials);
-    await exchange.loadMarkets();
-
-    if (!exchange.has.setLeverage) {
-      throw new Error(`${exchangeName} does not support setLeverage`);
-    }
-
-    const result = await exchange.setLeverage(args.leverage, args.symbol);
-
-    return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify(
-            {
-              exchange: exchangeName,
-              symbol: args.symbol,
-              leverage: args.leverage,
-              result: result,
-            },
-            null,
-            2
-          ),
-        },
-      ],
-    };
-  },
-
-  /**
-   * Handler for set_margin_mode
-   */
-  set_margin_mode: async (args) => {
-    const exchangeName = args.exchange || DEFAULT_EXCHANGE;
-    const credentials = getExchangeCredentials(exchangeName);
-
-    if (!credentials) {
-      throw new Error(
-        `No credentials configured for ${exchangeName}. Please set ${exchangeName.toUpperCase()}_API_KEY and ${exchangeName.toUpperCase()}_SECRET in .env file.`
-      );
-    }
-
-    const exchange = getExchange(exchangeName, credentials);
-    await exchange.loadMarkets();
-
-    if (!exchange.has.setMarginMode) {
-      throw new Error(`${exchangeName} does not support setMarginMode`);
-    }
-
-    const result = await exchange.setMarginMode(args.marginMode, args.symbol);
-
-    return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify(
-            {
-              exchange: exchangeName,
-              symbol: args.symbol,
-              marginMode: args.marginMode,
-              result: result,
-            },
-            null,
-            2
-          ),
-        },
-      ],
-    };
-  },
-
-  /**
-   * Handler for place_futures_market_order
-   */
-  place_futures_market_order: async (args) => {
-    const exchangeName = args.exchange || DEFAULT_EXCHANGE;
-    const credentials = getExchangeCredentials(exchangeName);
-
-    if (!credentials) {
-      throw new Error(
-        `No credentials configured for ${exchangeName}. Please set ${exchangeName.toUpperCase()}_API_KEY and ${exchangeName.toUpperCase()}_SECRET in .env file.`
-      );
-    }
-
-    const exchange = getExchange(exchangeName, credentials);
-    await exchange.loadMarkets();
-
-    const params = {};
-    if (args.reduceOnly !== undefined) {
-      params.reduceOnly = args.reduceOnly;
-    }
-
-    const order = await exchange.createMarketOrder(
-      args.symbol,
-      args.side,
-      args.amount,
-      params
-    );
-
-    return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify(
-            {
-              exchange: exchangeName,
-              type: "futures",
-              order: order,
-            },
-            null,
-            2
-          ),
-        },
-      ],
-    };
-  },
-
-  /**
-   * Handler for place_futures_limit_order
-   */
-  place_futures_limit_order: async (args) => {
-    const exchangeName = args.exchange || DEFAULT_EXCHANGE;
-    const credentials = getExchangeCredentials(exchangeName);
-
-    if (!credentials) {
-      throw new Error(
-        `No credentials configured for ${exchangeName}. Please set ${exchangeName.toUpperCase()}_API_KEY and ${exchangeName.toUpperCase()}_SECRET in .env file.`
-      );
-    }
-
-    const exchange = getExchange(exchangeName, credentials);
-    await exchange.loadMarkets();
-
-    const params = {};
-    if (args.reduceOnly !== undefined) {
-      params.reduceOnly = args.reduceOnly;
-    }
-    if (args.postOnly !== undefined) {
-      params.postOnly = args.postOnly;
-    }
-
-    const order = await exchange.createLimitOrder(
-      args.symbol,
-      args.side,
-      args.amount,
-      args.price,
-      params
-    );
-
-    return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify(
-            {
-              exchange: exchangeName,
-              type: "futures",
-              order: order,
-            },
-            null,
-            2
-          ),
-        },
-      ],
-    };
-  },
-
-  /**
-   * Handler for transfer_funds
-   */
-  transfer_funds: async (args) => {
-    const exchangeName = args.exchange || DEFAULT_EXCHANGE;
-    const credentials = getExchangeCredentials(exchangeName);
-
-    if (!credentials) {
-      throw new Error(
-        `No credentials configured for ${exchangeName}. Please set ${exchangeName.toUpperCase()}_API_KEY and ${exchangeName.toUpperCase()}_SECRET in .env file.`
-      );
-    }
-
-    const exchange = getExchange(exchangeName, credentials);
-    await exchange.loadMarkets();
-
-    if (!exchange.has.transfer) {
-      throw new Error(`${exchangeName} does not support fund transfers`);
-    }
-
-    const result = await exchange.transfer(
-      args.currency,
-      args.amount,
-      args.fromAccount,
-      args.toAccount
-    );
-
-    return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify(
-            {
-              exchange: exchangeName,
-              transfer: {
-                currency: args.currency,
-                amount: args.amount,
-                from: args.fromAccount,
-                to: args.toAccount,
-              },
-              result: result,
-            },
-            null,
-            2
-          ),
-        },
-      ],
-    };
-  },
-
-  /**
-   * Handler for get_portfolios
-   */
-  get_portfolios: async (args) => {
-    const exchangeName = args.exchange || DEFAULT_EXCHANGE;
-    const credentials = getExchangeCredentials(exchangeName);
-
-    if (!credentials) {
-      throw new Error(
-        `No credentials configured for ${exchangeName}. Please set ${exchangeName.toUpperCase()}_API_KEY and ${exchangeName.toUpperCase()}_SECRET in .env file.`
-      );
-    }
-
-    if (exchangeName !== 'coinbase') {
-      throw new Error('Portfolios are a Coinbase-specific feature. This tool only works with Coinbase exchange.');
-    }
-
-    const exchange = getExchange(exchangeName, credentials);
-
-    if (!exchange.has.fetchPortfolios) {
-      throw new Error(`${exchangeName} does not support fetchPortfolios`);
-    }
-
-    const portfolios = await exchange.fetchPortfolios();
-
-    return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify(
-            {
-              exchange: exchangeName,
-              count: portfolios ? portfolios.length : 0,
-              portfolios: portfolios,
-            },
-            null,
-            2
-          ),
-        },
-      ],
-    };
-  },
-
-  /**
-   * Handler for get_portfolio_details
-   */
-  get_portfolio_details: async (args) => {
-    const exchangeName = args.exchange || DEFAULT_EXCHANGE;
-    const credentials = getExchangeCredentials(exchangeName);
-
-    if (!credentials) {
-      throw new Error(
-        `No credentials configured for ${exchangeName}. Please set ${exchangeName.toUpperCase()}_API_KEY and ${exchangeName.toUpperCase()}_SECRET in .env file.`
-      );
-    }
-
-    if (exchangeName !== 'coinbase') {
-      throw new Error('Portfolio details are a Coinbase-specific feature. This tool only works with Coinbase exchange.');
-    }
-
-    const exchange = getExchange(exchangeName, credentials);
-
-    // Coinbase uses a custom method for portfolio breakdown
-    // This may require direct API calls or custom implementation
-    if (!exchange.has.fetchPortfolio && !exchange.has.fetchPortfolios) {
-      throw new Error(`${exchangeName} does not support portfolio details`);
-    }
-
-    // Try to fetch specific portfolio details
-    // Note: This might need adjustment based on actual Coinbase API structure
-    let portfolio;
-
-    if (exchange.has.fetchPortfolio) {
-      portfolio = await exchange.fetchPortfolio(args.portfolioId);
-    } else {
-      // Fallback: fetch all portfolios and filter
-      const portfolios = await exchange.fetchPortfolios();
-      portfolio = portfolios.find(p => p.id === args.portfolioId);
-
-      if (!portfolio) {
-        throw new Error(`Portfolio ${args.portfolioId} not found`);
-      }
-    }
-
-    return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify(
-            {
-              exchange: exchangeName,
-              portfolioId: args.portfolioId,
-              portfolio: portfolio,
-            },
-            null,
-            2
-          ),
-        },
-      ],
-    };
   },
 
   /**
    * Handler for edit_order
    */
   edit_order: async (args) => {
-    const exchangeName = args.exchange || DEFAULT_EXCHANGE;
-    const credentials = getExchangeCredentials(exchangeName);
+    try {
+      const exchangeName = args.exchange || DEFAULT_EXCHANGE;
+      const credentials = getExchangeCredentials(exchangeName);
 
-    if (!credentials) {
-      throw new Error(
-        `No credentials configured for ${exchangeName}. Please set ${exchangeName.toUpperCase()}_API_KEY and ${exchangeName.toUpperCase()}_SECRET in .env file.`
-      );
-    }
-
-    const exchange = getExchange(exchangeName, credentials);
-    await exchange.loadMarkets();
-
-    if (!exchange.has.editOrder) {
-      throw new Error(
-        `${exchangeName} does not support editOrder. Consider using cancel_order + place_limit_order instead.`
-      );
-    }
-
-    // Build params object with only provided values
-    const params = {};
-    if (args.amount !== undefined) {
-      params.amount = args.amount;
-    }
-    if (args.price !== undefined) {
-      params.price = args.price;
-    }
-
-    const order = await exchange.editOrder(
-      args.orderId,
-      args.symbol,
-      undefined, // type (keep existing)
-      args.side,
-      args.amount,
-      args.price,
-      params
-    );
-
-    return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify(
+      if (!credentials) {
+        return {
+          isError: true,
+          content: [
             {
-              exchange: exchangeName,
-              orderId: args.orderId,
-              editedOrder: order,
+              type: "text",
+              text: `No credentials configured for ${exchangeName}. Please set ${exchangeName.toUpperCase()}_API_KEY and ${exchangeName.toUpperCase()}_SECRET in .env file.`,
             },
-            null,
-            2
-          ),
-        },
-      ],
-    };
+          ],
+        };
+      }
+
+      const exchange = getExchange(exchangeName, credentials);
+      await exchange.loadMarkets();
+
+      if (!exchange.has.editOrder) {
+        return {
+          isError: true,
+          content: [
+            {
+              type: "text",
+              text: `${exchangeName} does not support editOrder. Consider using cancel_order + place_limit_order instead.`,
+            },
+          ],
+        };
+      }
+
+      // Build params object with only provided values
+      const params = {};
+      if (args.amount !== undefined) {
+        params.amount = args.amount;
+      }
+      if (args.price !== undefined) {
+        params.price = args.price;
+      }
+
+      const order = await exchange.editOrder(
+        args.orderId,
+        args.symbol,
+        undefined, // type (keep existing)
+        args.side,
+        args.amount,
+        args.price,
+        params
+      );
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(
+              {
+                exchange: exchangeName,
+                orderId: args.orderId,
+                editedOrder: order,
+              },
+              null,
+              2
+            ),
+          },
+        ],
+      };
+    } catch (error) {
+      console.error(`❌ Error in edit_order:`, error.message);
+      return {
+        isError: true,
+        content: [
+          {
+            type: "text",
+            text: `Error editing order: ${error.message}`
+          }
+        ]
+      };
+    }
   },
 };
