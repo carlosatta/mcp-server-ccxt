@@ -43,7 +43,7 @@ Aggiunte protezioni timeout alle seguenti operazioni:
 
 3. **Timeout anticipato**: Con 15s invece di 30s, il server risponde più velocemente liberando le risorse
 
-4. **Configurazione esistente preservata**: 
+4. **Configurazione esistente preservata**:
    - `requestTimeout` in `config.js` può rimanere a 30s (o essere disabilitato con `null`)
    - `toolTimeout` di 20s può essere usato per regolare il comportamento globale
    - Il timeout di 15s per CCXT opera a un livello inferiore

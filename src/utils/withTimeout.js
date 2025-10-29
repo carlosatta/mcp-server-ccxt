@@ -12,7 +12,7 @@
  */
 export async function withTimeout(promise, timeoutMs, operationName = 'Operation') {
   let timeoutId;
-  
+
   const timeoutPromise = new Promise((_, reject) => {
     timeoutId = setTimeout(() => {
       reject(new Error(`${operationName} timed out after ${timeoutMs}ms`));
