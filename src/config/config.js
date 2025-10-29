@@ -19,7 +19,7 @@ export const SERVER_CONFIG = {
   // Session management configuration
   sessionTimeout: parseInt(process.env.SESSION_TIMEOUT_MS) || 300000, // 5 minutes
   sessionCleanupInterval: parseInt(process.env.SESSION_CLEANUP_INTERVAL_MS) || 30000, // 30 seconds
-  allowAutoSessionRecreate: process.env.ALLOW_AUTO_SESSION_RECREATE === 'true', // Default: false (standard compliant)
+  allowAutoSessionRecreate: process.env.ALLOW_AUTO_SESSION_RECREATE !== 'false', // Default: true (compatible mode)
   maxSessionErrors: parseInt(process.env.MAX_SESSION_ERRORS) || 10, // Disabled if 0
 };
 

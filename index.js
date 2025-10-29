@@ -238,7 +238,7 @@ app.listen(PORT, HOST, () => {
   console.log(`📊 Status: http://${HOST}:${PORT}/api/status`);
   console.log(`📖 Documentation: http://${HOST}:${PORT}/`);
   console.log(`💱 Exchanges: ${SUPPORTED_EXCHANGES.join(", ")}`);
-  console.log(`⚙️  MCP Standard Mode: ${!SERVER_CONFIG.allowAutoSessionRecreate ? 'ENABLED' : 'DISABLED'}`);
+  console.log(`⚙️  Compatibility Mode: ${SERVER_CONFIG.allowAutoSessionRecreate ? 'ENABLED' : 'DISABLED (MCP Standard)'}`);
   console.log(`⏱️  Session Timeout: ${SERVER_CONFIG.sessionTimeout/1000}s`);
   console.log(`🧹 Cleanup Interval: ${SERVER_CONFIG.sessionCleanupInterval/1000}s`);
   console.log("=".repeat(60));
