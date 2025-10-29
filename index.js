@@ -70,21 +70,12 @@ app.all('/mcp', async (req, res) => {
         metadata.lastActivity = new Date();
       }
     } else if (req.method === 'POST' && req.body?.method === 'initialize') {
-      // Create new transport for initialization - MUST NOT have sessionId
-      if (sessionId) {
-        res.status(400).json({
-          jsonrpc: '2.0',
-          error: {
-            code: -32000,
-            message: 'Bad Request: Session ID not allowed on initialize'
-          },
-          id: req.body?.id || null
-        });
-        return;
-      }
-
+      // Create new transport for initialization
+      // Accept session ID from client if provided, otherwise generate new one
+      const useSessionId = sessionId || randomUUID();
+      
       transport = new StreamableHTTPServerTransport({
-        sessionIdGenerator: () => randomUUID(),
+        sessionIdGenerator: () => useSessionId,
         onsessioninitialized: (newSessionId) => {
           transports.set(newSessionId, transport);
           sessionMetadata.set(newSessionId, {
