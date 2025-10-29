@@ -13,7 +13,7 @@ const transports = new Map(); // Map<sessionId, StreamableHTTPServerTransport>
 app.all('/mcp', async (req, res) => {
   const sessionId = req.headers['mcp-session-id'];
   const transport = transports.get(sessionId);
-  
+
   // Ogni sessionId ha il proprio transport
   await transport.handleRequest(req, res, req.body);
 });
@@ -37,7 +37,7 @@ export function getExchange(exchangeName, credentials) {
   if (credentials) {
     return createExchangeInstance(name, credentials);
   }
-  
+
   // Senza credenziali: usa cache per exchange pubblici
   if (!exchangeCache.has(name)) {
     exchangeCache.set(name, createExchangeInstance(name, null));
@@ -129,7 +129,7 @@ const workflows = [
 ];
 
 // Tutti i workflow si eseguono in parallelo
-await Promise.all(workflows.map(wf => 
+await Promise.all(workflows.map(wf =>
   mcpCall(wf.sessionId, 'get_open_orders', { symbol: wf.id })
 ));
 ```
@@ -177,7 +177,7 @@ let nextSession = 0;
 async function mcpCallRoundRobin(toolName, params) {
   const sessionId = sessionPool[nextSession % sessionPool.length];
   nextSession++;
-  
+
   return mcpCall(sessionId, toolName, params);
 }
 
@@ -304,13 +304,13 @@ class MCPWorkflow {
   constructor(workflowName) {
     this.sessionId = `wf-${workflowName}-${crypto.randomUUID()}`;
   }
-  
+
   async execute(operations) {
-    return Promise.all(operations.map(op => 
+    return Promise.all(operations.map(op =>
       this.mcpCall(op.tool, op.params)
     ));
   }
-  
+
   async mcpCall(toolName, params) {
     return fetch('http://192.168.1.140:3000/mcp', {
       method: 'POST',
