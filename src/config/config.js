@@ -15,7 +15,7 @@ export const SERVER_CONFIG = {
   port: parseInt(process.env.PORT) || 3000,
   logLevel: process.env.LOG_LEVEL || "info",
   requestTimeout: 30000, // 30 seconds timeout for requests
-  
+
   // Session management configuration
   sessionTimeout: parseInt(process.env.SESSION_TIMEOUT_MS) || 300000, // 5 minutes
   sessionCleanupInterval: parseInt(process.env.SESSION_CLEANUP_INTERVAL_MS) || 30000, // 30 seconds

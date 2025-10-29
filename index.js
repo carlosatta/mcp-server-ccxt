@@ -108,7 +108,7 @@ app.all('/mcp', async (req, res) => {
     } else if (SERVER_CONFIG.allowAutoSessionRecreate) {
       // NON-STANDARD: Auto-recreate session for non-compliant clients (configurable)
       console.warn(`⚠️ Session ${sessionId} not found, auto-recreating (non-standard behavior)`);
-      
+
       transport = new StreamableHTTPServerTransport({
         sessionIdGenerator: () => sessionId,
         onsessioninitialized: (newSessionId) => {
@@ -132,7 +132,7 @@ app.all('/mcp', async (req, res) => {
       };
 
       await server.connect(transport);
-      
+
       // Auto-initialize the session
       if (req.body?.method !== 'initialize') {
         transport.sessionId = sessionId;
