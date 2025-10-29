@@ -114,9 +114,9 @@ app.all('/mcp', async (req, res) => {
     } else {
       // Session ID provided but unknown - auto-recreate session (fallback for non-compliant clients)
       console.warn(`⚠️ Session ${sessionId} expired/unknown, auto-recreating (fallback for client compatibility)`);
-      
+
       const useSessionId = sessionId; // Keep client's session ID
-      
+
       transport = new StreamableHTTPServerTransport({
         sessionIdGenerator: () => useSessionId,
         onsessioninitialized: (newSessionId) => {
@@ -142,7 +142,7 @@ app.all('/mcp', async (req, res) => {
       };
 
       await server.connect(transport);
-      
+
       // Auto-initialize the session before processing the actual request
       if (req.body?.method !== 'initialize') {
         // Force initialize internally to make session ready
