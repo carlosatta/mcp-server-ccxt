@@ -69,8 +69,8 @@ app.all('/mcp', async (req, res) => {
       if (metadata) {
         metadata.lastActivity = new Date();
       }
-    } else if (!sessionId && req.method === 'POST' && req.body?.method === 'initialize') {
-      // Create new transport for initialization
+    } else if (req.method === 'POST' && req.body?.method === 'initialize') {
+      // Create new transport for initialization (with or without sessionId)
       transport = new StreamableHTTPServerTransport({
         sessionIdGenerator: () => randomUUID(),
         onsessioninitialized: (newSessionId) => {
@@ -97,8 +97,8 @@ app.all('/mcp', async (req, res) => {
 
       // Connect server to transport
       await server.connect(transport);
-    } else {
-      // Invalid request
+    } else if (!sessionId) {
+      // Invalid request - no session ID and not initialize
       res.status(400).json({
         jsonrpc: '2.0',
         error: {
@@ -108,6 +108,32 @@ app.all('/mcp', async (req, res) => {
         id: null
       });
       return;
+    } else {
+      // Session ID provided but not found - create new session
+      transport = new StreamableHTTPServerTransport({
+        sessionIdGenerator: () => sessionId,
+        onsessioninitialized: (newSessionId) => {
+          transports.set(newSessionId, transport);
+          sessionMetadata.set(newSessionId, {
+            connectedAt: new Date(),
+            lastActivity: new Date(),
+            clientIp: req.ip,
+            userAgent: req.get('user-agent'),
+            requestCount: 0,
+            errorCount: 0
+          });
+        }
+      });
+
+      transport.onclose = () => {
+        const sid = transport.sessionId;
+        if (sid && transports.has(sid)) {
+          transports.delete(sid);
+          sessionMetadata.delete(sid);
+        }
+      };
+
+      await server.connect(transport);
     }
 
     // Set response timeout

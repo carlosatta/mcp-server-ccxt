@@ -204,7 +204,7 @@ async function getTicker(symbol, exchange = 'binance') {
   });
 
   const result = await response.json();
-  
+
   if (result.success) {
     console.log(`${symbol} price:`, result.data.ticker.last);
     return result.data;
@@ -231,10 +231,10 @@ def get_ticker(symbol, exchange='binance'):
         'symbol': symbol,
         'exchange': exchange
     }
-    
+
     response = requests.post(url, json=payload)
     result = response.json()
-    
+
     if result['success']:
         print(f"{symbol} price: {result['data']['ticker']['last']}")
         return result['data']
