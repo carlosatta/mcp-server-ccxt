@@ -448,67 +448,91 @@ export const privateToolsHandlers = {
    * Handler for list_accounts
    */
   list_accounts: async (args) => {
-    const exchangeName = args.exchange || DEFAULT_EXCHANGE;
-    const credentials = getExchangeCredentials(exchangeName);
+    try {
+      const exchangeName = args.exchange || DEFAULT_EXCHANGE;
+      const credentials = getExchangeCredentials(exchangeName);
 
-    if (!credentials) {
-      throw new Error(
-        `No credentials configured for ${exchangeName}. Please set ${exchangeName.toUpperCase()}_API_KEY and ${exchangeName.toUpperCase()}_SECRET in .env file.`
-      );
-    }
-
-    const exchange = getExchange(exchangeName, credentials);
-    await exchange.loadMarkets();
-
-    let accounts = [];
-
-    // Try to fetch accounts if the exchange supports it
-    if (exchange.has["fetchAccounts"]) {
-      accounts = await exchange.fetchAccounts();
-    } else if (exchange.has["fetchBalance"]) {
-      // Fallback: get balance and try to extract account information
-      const balance = await exchange.fetchBalance();
-
-      // For some exchanges, balance.info might contain account details
-      if (balance.info && Array.isArray(balance.info)) {
-        accounts = balance.info;
-      } else if (balance.info && typeof balance.info === "object") {
-        // Try to extract account/wallet structure from info
-        accounts = [balance.info];
-      } else {
-        // Create a single "default" account entry
-        accounts = [
-          {
-            id: "default",
-            type: "spot",
-            currency: null,
-            info: balance,
-          },
-        ];
-      }
-    } else {
-      throw new Error(
-        `Exchange ${exchangeName} does not support account listing`
-      );
-    }
-
-    return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify(
+      if (!credentials) {
+        return {
+          isError: true,
+          content: [
             {
-              exchange: exchangeName,
-              timestamp: Date.now(),
-              accounts: accounts,
-              count: accounts.length,
+              type: "text",
+              text: `No credentials configured for ${exchangeName}. Please set ${exchangeName.toUpperCase()}_API_KEY and ${exchangeName.toUpperCase()}_SECRET in .env file.`,
             },
-            null,
-            2
-          ),
-        },
-      ],
-    };
+          ],
+        };
+      }
+
+      const exchange = getExchange(exchangeName, credentials);
+      await exchange.loadMarkets();
+
+      let accounts = [];
+
+      // Try to fetch accounts if the exchange supports it
+      if (exchange.has["fetchAccounts"]) {
+        accounts = await exchange.fetchAccounts();
+      } else if (exchange.has["fetchBalance"]) {
+        // Fallback: get balance and try to extract account information
+        const balance = await exchange.fetchBalance();
+
+        // For some exchanges, balance.info might contain account details
+        if (balance.info && Array.isArray(balance.info)) {
+          accounts = balance.info;
+        } else if (balance.info && typeof balance.info === "object") {
+          // Try to extract account/wallet structure from info
+          accounts = [balance.info];
+        } else {
+          // Create a single "default" account entry
+          accounts = [
+            {
+              id: "default",
+              type: "spot",
+              currency: null,
+              info: balance,
+            },
+          ];
+        }
+      } else {
+        return {
+          isError: true,
+          content: [
+            {
+              type: "text",
+              text: `Exchange ${exchangeName} does not support account listing`,
+            },
+          ],
+        };
+      }
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(
+              {
+                exchange: exchangeName,
+                timestamp: Date.now(),
+                accounts: accounts,
+                count: accounts.length,
+              },
+              null,
+              2
+            ),
+          },
+        ],
+      };
+    } catch (error) {
+      return {
+        isError: true,
+        content: [
+          {
+            type: "text",
+            text: `Error fetching accounts: ${error.message}`,
+          },
+        ],
+      };
+    }
   },
 
   /**
@@ -585,75 +609,111 @@ export const privateToolsHandlers = {
    * Handler for place_limit_order
    */
   place_limit_order: async (args) => {
-    const exchangeName = args.exchange || DEFAULT_EXCHANGE;
-    const credentials = getExchangeCredentials(exchangeName);
+    try {
+      const exchangeName = args.exchange || DEFAULT_EXCHANGE;
+      const credentials = getExchangeCredentials(exchangeName);
 
-    if (!credentials) {
-      throw new Error(
-        `No credentials configured for ${exchangeName}. Please set ${exchangeName.toUpperCase()}_API_KEY and ${exchangeName.toUpperCase()}_SECRET in .env file.`
-      );
-    }
-
-    const exchange = getExchange(exchangeName, credentials);
-    await exchange.loadMarkets();
-
-    const order = await exchange.createLimitOrder(
-      args.symbol,
-      args.side,
-      args.amount,
-      args.price
-    );
-
-    return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify(
+      if (!credentials) {
+        return {
+          isError: true,
+          content: [
             {
-              exchange: exchangeName,
-              order: order,
+              type: "text",
+              text: `No credentials configured for ${exchangeName}. Please set ${exchangeName.toUpperCase()}_API_KEY and ${exchangeName.toUpperCase()}_SECRET in .env file.`,
             },
-            null,
-            2
-          ),
-        },
-      ],
-    };
+          ],
+        };
+      }
+
+      const exchange = getExchange(exchangeName, credentials);
+      await exchange.loadMarkets();
+
+      const order = await exchange.createLimitOrder(
+        args.symbol,
+        args.side,
+        args.amount,
+        args.price
+      );
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(
+              {
+                exchange: exchangeName,
+                order: order,
+              },
+              null,
+              2
+            ),
+          },
+        ],
+      };
+    } catch (error) {
+      return {
+        isError: true,
+        content: [
+          {
+            type: "text",
+            text: `Error placing limit order: ${error.message}`,
+          },
+        ],
+      };
+    }
   },
 
   /**
    * Handler for cancel_order
    */
   cancel_order: async (args) => {
-    const exchangeName = args.exchange || DEFAULT_EXCHANGE;
-    const credentials = getExchangeCredentials(exchangeName);
+    try {
+      const exchangeName = args.exchange || DEFAULT_EXCHANGE;
+      const credentials = getExchangeCredentials(exchangeName);
 
-    if (!credentials) {
-      throw new Error(
-        `No credentials configured for ${exchangeName}. Please set ${exchangeName.toUpperCase()}_API_KEY and ${exchangeName.toUpperCase()}_SECRET in .env file.`
-      );
-    }
-
-    const exchange = getExchange(exchangeName, credentials);
-    await exchange.loadMarkets();
-
-    const result = await exchange.cancelOrder(args.orderId, args.symbol);
-
-    return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify(
+      if (!credentials) {
+        return {
+          isError: true,
+          content: [
             {
-              exchange: exchangeName,
-              result: result,
+              type: "text",
+              text: `No credentials configured for ${exchangeName}. Please set ${exchangeName.toUpperCase()}_API_KEY and ${exchangeName.toUpperCase()}_SECRET in .env file.`,
             },
-            null,
-            2
-          ),
-        },
-      ],
-    };
+          ],
+        };
+      }
+
+      const exchange = getExchange(exchangeName, credentials);
+      await exchange.loadMarkets();
+
+      const result = await exchange.cancelOrder(args.orderId, args.symbol);
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(
+              {
+                exchange: exchangeName,
+                result: result,
+              },
+              null,
+              2
+            ),
+          },
+        ],
+      };
+    } catch (error) {
+      return {
+        isError: true,
+        content: [
+          {
+            type: "text",
+            text: `Error canceling order: ${error.message}`,
+          },
+        ],
+      };
+    }
   },
 
   /**
