@@ -70,7 +70,19 @@ app.all('/mcp', async (req, res) => {
         metadata.lastActivity = new Date();
       }
     } else if (req.method === 'POST' && req.body?.method === 'initialize') {
-      // Create new transport for initialization (with or without sessionId)
+      // Create new transport for initialization - MUST NOT have sessionId
+      if (sessionId) {
+        res.status(400).json({
+          jsonrpc: '2.0',
+          error: {
+            code: -32000,
+            message: 'Bad Request: Session ID not allowed on initialize'
+          },
+          id: req.body?.id || null
+        });
+        return;
+      }
+
       transport = new StreamableHTTPServerTransport({
         sessionIdGenerator: () => randomUUID(),
         onsessioninitialized: (newSessionId) => {
@@ -103,48 +115,22 @@ app.all('/mcp', async (req, res) => {
         jsonrpc: '2.0',
         error: {
           code: -32000,
-          message: 'Bad Request: No valid session ID provided'
+          message: 'Bad Request: Session ID required (call initialize first)'
         },
-        id: null
+        id: req.body?.id || null
       });
       return;
     } else {
-      // Session ID provided but not found - treat as initialize
-      transport = new StreamableHTTPServerTransport({
-        sessionIdGenerator: () => sessionId,
-        onsessioninitialized: (newSessionId) => {
-          transports.set(newSessionId, transport);
-          sessionMetadata.set(newSessionId, {
-            connectedAt: new Date(),
-            lastActivity: new Date(),
-            clientIp: req.ip,
-            userAgent: req.get('user-agent'),
-            requestCount: 0,
-            errorCount: 0
-          });
-        }
+      // Session ID provided but unknown - session expired or invalid
+      res.status(404).json({
+        jsonrpc: '2.0',
+        error: {
+          code: -32001,
+          message: 'Not Found: Session expired or invalid (call initialize to create new session)'
+        },
+        id: req.body?.id || null
       });
-
-      transport.onclose = () => {
-        const sid = transport.sessionId;
-        if (sid && transports.has(sid)) {
-          transports.delete(sid);
-          sessionMetadata.delete(sid);
-        }
-      };
-
-      await server.connect(transport);
-      
-      // If not initialize method, send initialize first
-      if (req.body?.method !== 'initialize') {
-        // Auto-initialize
-        await transport.handleRequest(req, res, {
-          jsonrpc: '2.0',
-          id: 0,
-          method: 'initialize',
-          params: {}
-        });
-      }
+      return;
     }
 
     // Set response timeout
